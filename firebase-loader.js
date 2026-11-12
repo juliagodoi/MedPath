@@ -19,7 +19,7 @@ $('#login').addEventListener('submit',async ev=>{
 async function flush(){
  if(!currentUid||!loaded||!dirty||!auth.currentUser||auth.currentUser.uid!==currentUid)return;
  const uid=currentUid;dirty=false;setStatus('Sincronizando…');
- try{await setDoc(doc(db,'users',uid,'state','main'),{data:structuredClone(window.medpathGetState()),updatedAt:new Date().toISOString()});if(uid===currentUid)setStatus('Sincronizado')}
+ try{await setDoc(doc(db,'users',uid,'state','main'),{dataJson:JSON.stringify(window.medpathGetState()),updatedAt:new Date().toISOString()});if(uid===currentUid)setStatus('Sincronizado')}
  catch(e){dirty=true;setStatus('Erro ao salvar — confira a conexão');console.error('Falha ao salvar progresso',e)}
 }
 window.medpathQueueSave=()=>{if(!loaded||remoteUpdate)return;dirty=true;setStatus('Alterações pendentes');clearTimeout(saveTimer);saveTimer=setTimeout(flush,900)};
@@ -35,13 +35,13 @@ if(auth)onAuthStateChanged(auth,async user=>{
   if(!catSnap.exists())throw Error('Catálogo privado ainda não foi importado.');
   if(currentUid!==user.uid)return;
   const catalog=catSnap.data().dataJson?JSON.parse(catSnap.data().dataJson):catSnap.data().data;
-  window.medpathHydrate(catalog,stateSnap.exists()?stateSnap.data().data:null);
+  window.medpathHydrate(catalog,stateSnap.exists()?(stateSnap.data().dataJson?JSON.parse(stateSnap.data().dataJson):stateSnap.data().data):null);
   loaded=true;document.body.classList.add('ready');session.hidden=false;setStatus('Sincronizado');err.textContent='';
   // Estado inicial gerado por migrações deve ser persistido no perfil correto.
   window.medpathQueueSave();
   unsub=onSnapshot(doc(db,'users',user.uid,'state','main'),snap=>{
    if(!loaded||!snap.exists()||dirty)return;
-   const incoming=snap.data().data;
+   const incoming=snap.data().dataJson?JSON.parse(snap.data().dataJson):snap.data().data;
    if(JSON.stringify(incoming)===JSON.stringify(window.medpathGetState()))return;
    remoteUpdate=true;try{window.medpathHydrate(catalog,incoming)}finally{remoteUpdate=false}
   },e=>setStatus('Falha na sincronização'));

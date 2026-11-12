@@ -635,7 +635,7 @@ const sc=w=>w>0?Math.max(1,Math.min(10,Math.round(10*Math.sqrt(w/WM())))):0;
 /* MedPath: associação automática de conteúdos às especialidades e temas do Guia Estatístico.
    Os assuntos (A) do catálogo do guia são apenas marcados como destaque; não possuem % individual. */
 let INC_ALIASES = null;
-INC_ALIASES['Cirurgia|Urgências abdominais'].push('dor abdominal aguda','sindrome abdominal aguda','sindrome do abdome agudo','abdome agudo nao traumatico','abdomen agudo cirurgico');
+// Os aliases privados são carregados somente após a autenticação pelo Firestore.
 let INC_SUBJECTS = null;
 // Normalização tolerante a acentos, grafias alternativas e flexões comuns.
 // As palavras compostas continuam sendo avaliadas no contexto da disciplina.
