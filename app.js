@@ -368,8 +368,39 @@ let LQ='',OT='';
 function freq(t){if(t.g){const[ge,gt]=t.g.split('|'),r=(GT[ge]||[]).find(x=>x[0]==gt);if(r)return{p:+r[1],esp:ge,tm:gt,lv:+r[1]>=20?'Muito prevalente':+r[1]>=10?'Prevalente':'Menor prevalência'}}const n=nm(t.name);let b=null;if(n.length<4)return b;Object.entries(GT).forEach(([esp,l])=>{if(t.esp&&t.esp!=esp)return;l.forEach(([tm,p])=>{const m=nm(tm);if((n.includes(m)||m.includes(n))&&(!b||+p>b.p))b={p:+p,esp,tm,lv:+p>=20?'Muito prevalente':+p>=10?'Prevalente':'Menor prevalência'}})});return b}
 const pb=t=>{const f=freq(t);return f?`<span class="chip" style="background:${{'Muito prevalente':'#12a58f','Prevalente':'#5b95dc'}[f.lv]||'#8aa0b8'}">${f.lv}</span>`:''};
 const ar=x=>['Ortopedia','Otorrinolaringologia','Oftalmologia'].includes(x)?'Cirurgia Geral':AG(x);
-function mig(){if(S.v2)return;S.themes.forEach(t=>{if(!t.esp){const f=freq(t);t.esp=f?f.esp:''}});GE.forEach(([esp])=>GT[esp].forEach(([tm])=>{if(!S.themes.some(t=>nm(t.name)==nm(tm)||(t.esp==esp&&(freq(t)||{}).tm==tm)))S.themes.push({id:U(),area:ar(esp),esp,name:tm,src:'Guia Estatístico ENAMED (Estratégia MED): estrutura e prevalência; conteúdo ainda não importado'})}));S.v2=1;save()}
 
+function mig() {
+  if (S.v2) return;
+
+  S.themes.forEach(t => {
+    if (!t.esp) {
+      const f = freq(t);
+      t.esp = f ? f.esp : '';
+    }
+  });
+
+  GE.forEach(([esp]) => {
+    const temas = GT[esp] || [];
+
+    temas.forEach(([tm]) => {
+      if (!S.themes.some(t =>
+        nm(t.name) == nm(tm) ||
+        (t.esp == esp && (freq(t) || {}).tm == tm)
+      )) {
+        S.themes.push({
+          id: U(),
+          area: ar(esp),
+          esp,
+          name: tm,
+          src: 'Guia Estatístico ENAMED (Estratégia MED): estrutura e prevalência; conteúdo ainda não importado'
+        });
+      }
+    });
+  });
+
+  S.v2 = 1;
+  save();
+}
 
 const AUTO_TEXT_MARKERS={"fisio":["43e37cd1:187","ca6f4e99:232","e5040aea:534"],"classif":["3c90dd43:453","57bb1472:329","6dcec96d:683","893814e0:500","b026e0c1:396","e3315ef8:336"],"dx":["1d8c5fe1:885","422dab88:549","521cb74b:627","7c6a465f:841","b5335041:1638","d2ab35a4:305","f6b6e5e8:172"],"exams":["107d0e3a:460","5ba31e13:442","7e0e69d4:294","a044fe2c:346"],"tx":["1461cccf:768","2fa1b0df:1406","3ac53b46:724","4d0a04df:1632","66ce1b32:908","c57c9272:307","e4c04fb3:1807"],"ddx":["020b5223:706"],"compl":["911a4138:749"],"tips":["681d8e4e:329","6b99206c:403","71e5de33:137","f761f906:227"],"outros":["f172c237:1110"],"src":["4bf0a0c4:121","66dc5c51:144","801ce9b8:131","a57f5495:204","bd8b31ce:159","c3d5ef09:133"],"desc":["026afdc6:306","10cdb3f0:214","675bae6a:364","808fbd7b:200"]};
 // Remove apenas os preenchimentos inseridos automaticamente em versoes anteriores.
