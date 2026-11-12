@@ -34,7 +34,8 @@ if(auth)onAuthStateChanged(auth,async user=>{
   const [catSnap,stateSnap]=await Promise.all([getDoc(doc(db,'catalog','main')),getDoc(doc(db,'users',user.uid,'state','main'))]);
   if(!catSnap.exists())throw Error('Catálogo privado ainda não foi importado.');
   if(currentUid!==user.uid)return;
-  window.medpathHydrate(catSnap.data().data,stateSnap.exists()?stateSnap.data().data:null);
+  const catalog=catSnap.data().dataJson?JSON.parse(catSnap.data().dataJson):catSnap.data().data;
+  window.medpathHydrate(catalog,stateSnap.exists()?stateSnap.data().data:null);
   loaded=true;document.body.classList.add('ready');session.hidden=false;setStatus('Sincronizado');err.textContent='';
   // Estado inicial gerado por migrações deve ser persistido no perfil correto.
   window.medpathQueueSave();
@@ -42,7 +43,7 @@ if(auth)onAuthStateChanged(auth,async user=>{
    if(!loaded||!snap.exists()||dirty)return;
    const incoming=snap.data().data;
    if(JSON.stringify(incoming)===JSON.stringify(window.medpathGetState()))return;
-   remoteUpdate=true;try{window.medpathHydrate(catSnap.data().data,incoming)}finally{remoteUpdate=false}
+   remoteUpdate=true;try{window.medpathHydrate(catalog,incoming)}finally{remoteUpdate=false}
   },e=>setStatus('Falha na sincronização'));
  }catch(e){err.textContent=e.message||'Erro ao carregar dados privados.';console.error(e)}
 });
