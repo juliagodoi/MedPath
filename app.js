@@ -43,7 +43,7 @@ d.innerHTML=`<h3>${title}</h3>${fl.map(inp).join('')}<p class="err" id="fe"></p>
 d.querySelector('#fc').onclick=()=>d.remove();
 d.querySelector('#fs').onclick=()=>{const o={};for(const[k,l,t,,r]of fl){if(t=='m')o[k]=[...d.querySelectorAll(`[name=f_${k}]:checked`)].map(i=>i.value);else{o[k]=d.querySelector('#f_'+k).value.trim();if(t=='number')o[k]=o[k]===''?'':+o[k];if(r&&o[k]===''){d.querySelector('#fe').textContent='Preencha: '+l;return}}}cb(o);d.remove();save();go()};return d}
 function C(m,cb){const d=document.createElement('dialog');d.innerHTML=`<p>${m}</p><div class="row"><button class="b2" id="cn">Cancelar</button><button class="b" id="cy">Confirmar</button></div>`;document.body.append(d);d.showModal();d.querySelector('#cn').onclick=()=>d.remove();d.querySelector('#cy').onclick=()=>{d.remove();cb()}}
-function del(c,id){C('Excluir este item?',()=>{if(c=='subs')S.cons=S.cons.filter(x=>x.sub!=id);if(c=='themes')S.cons.forEach(x=>x.themes=x.themes.filter(t=>t!=id));S[c]=S[c].filter(x=>x.id!=id);if(fsel==id)fsel='';save();go()})}
+function del(c,id){C('Excluir este item?',()=>{if(c=='subs')S.cons=S.cons.filter(x=>x.sub!=id);if(c=='themes')S.cons.forEach(x=>x.themes=(x.themes||[]).filter(t=>t!=id));S[c]=S[c].filter(x=>x.id!=id);if(fsel==id)fsel='';save();go()})}
 // Migração idempotente: converte o status antigo sem apagar questões, revisões ou histórico.
 function migrateProgress(){
   if(!Array.isArray(S.qsessions))S.qsessions=[];
@@ -367,7 +367,20 @@ const CR=V.cronograma;
 let LQ='',OT='';
 function freq(t){if(t.g){const[ge,gt]=t.g.split('|'),r=(GT[ge]||[]).find(x=>x[0]==gt);if(r)return{p:+r[1],esp:ge,tm:gt,lv:+r[1]>=20?'Muito prevalente':+r[1]>=10?'Prevalente':'Menor prevalência'}}const n=nm(t.name);let b=null;if(n.length<4)return b;Object.entries(GT).forEach(([esp,l])=>{if(t.esp&&t.esp!=esp)return;l.forEach(([tm,p])=>{const m=nm(tm);if((n.includes(m)||m.includes(n))&&(!b||+p>b.p))b={p:+p,esp,tm,lv:+p>=20?'Muito prevalente':+p>=10?'Prevalente':'Menor prevalência'}})});return b}
 const pb=t=>{const f=freq(t);return f?`<span class="chip" style="background:${{'Muito prevalente':'#12a58f','Prevalente':'#5b95dc'}[f.lv]||'#8aa0b8'}">${f.lv}</span>`:''};
-const ar=x=>['Ortopedia','Otorrinolaringologia','Oftalmologia'].includes(x)?'Cirurgia Geral':AG(x);
+// Classificação das especialidades do catálogo nas grandes áreas.
+// A função AG estava ausente e impedia a migração após o login.
+function AG(value){
+  const n=nm(value);
+  if(AREAS.some(a=>nm(a)===n))return AREAS.find(a=>nm(a)===n);
+  if(/pediatr|neonat|puericult/.test(n))return 'Pediatria';
+  if(/ginec|obstetr|mastolog/.test(n))return 'Ginecologia e Obstetrícia';
+  if(/cirurg|ortoped|otorrino|oftalm|urolog|anestes|traumatolog|proctolog/.test(n))return 'Cirurgia Geral';
+  if(/preventiv|saude coletiva|epidemiolog|saude publica|medicina social/.test(n))return 'Medicina Preventiva e Social';
+  if(/familia|comunidade|atencao primaria/.test(n))return 'Medicina de Família e Comunidade';
+  if(/radiolog|imagem/.test(n))return 'Radiologia';
+  return 'Clínica Médica';
+}
+const ar=x=>AG(x);
 
 function mig() {
   if (S.v2) return;
@@ -463,7 +476,7 @@ function driveFilesFor(t){
   if(!t)return [];
   const matches=[];
   const specialty=driveSubject(t.esp);
-  for(const [key,files] of Object.entries(DRIVE_AULAS_INDEX)){
+  for(const [key,files] of Object.entries(DRIVE_AULAS_INDEX||{})){
     const cut=key.indexOf('|'),esp=key.slice(0,cut),title=key.slice(cut+1);
     if(esp!==specialty)continue;
     const score=driveTopicScore(t.name,title);
@@ -479,7 +492,7 @@ function driveFilesFor(t){
       if(driveFileUrl(id))found.push({provider,id,name:String(name||'Aula em PDF'),origin:'catalogado'});
     }
   const key=specialty+'|'+t.name;
-  for(const [k,files] of Object.entries(DRIVE_TOPIC_EXTRA)){
+  for(const [k,files] of Object.entries(DRIVE_TOPIC_EXTRA||{})){
     const p=k.indexOf('|');
     if(k.slice(0,p)!==specialty||incNorm(k.slice(p+1))!==incNorm(t.name))continue;
     for(const [provider,list] of Object.entries(files))
@@ -515,7 +528,7 @@ function showDriveFiles(tId){
 }
 const driveButton=t=>`<button class="b2" onclick="showDriveFiles('${t.id}')" title="Abrir PDFs do assunto no Google Drive">Ver no Drive</button>`;
 
-function libDet(t){const f=freq(t),cs=S.cons.filter(c=>c.themes.includes(t.id)),B=[['Resumo',t.desc],['Fisiopatologia',t.fisio],['Classificação',t.classif],['Diagnóstico',t.dx],['Diagnósticos diferenciais',t.ddx],['Exames complementares',t.exams],['Tratamento e conduta',t.tx],['Complicações',t.compl],['Particularidades para provas',t.tips],['Outros subtópicos',t.outros]].filter(x=>x[1]);return `<div class="row"><button class="b2" onclick="OT='';go()">← Biblioteca</button><h1 class="gr">${e(t.name)}</h1>${driveButton(t)}<button class="b2" onclick="edTheme('${t.id}')">Editar</button><button class="b2" onclick="del('themes','${t.id}')">Excluir</button></div><div class="card"><div class="row"><span class="gr">${e(t.area)} › ${e(t.esp||'—')}</span><select onchange="setTh('${t.id}',this.value)">${O(['Não estudado','Em estudo','Estudado','Revisado'],t.st||'Não estudado')}</select></div>${f?`<p>${pb(t)} <small>${f.p.toFixed(2).replace('.',',')}% dos itens de ${e(f.esp)} no Guia Estatístico (percentual dentro da especialidade; base: Revalida INEP 2011–2025 + ENAMED/ENARE 2025/26). Frequência histórica, não garantia de cobrança.</small></p>`:''}${t.src?`<small>Fonte: ${e(t.src)}</small>`:''}${t.mat?`<br><small>Materiais nas suas pastas: ${t.mat.split('').map(c=>({E:'Estratégia',M:'Medcof',W:'Medway'}[c])).join(', ')}</small>`:''}</div>`+(B.length?B.map(x=>`<div class="card"><small>${x[0]}</small><br>${e(x[1])}</div>`).join(''):'')+`<button class="b2" onclick="QF={theme:'${t.id}'};to('questoes','questoes','q')">Questões deste assunto (${S.qs.filter(q=>q.theme==t.id).length})</button>`}
+function libDet(t){const f=freq(t),cs=S.cons.filter(c=>(c.themes||[]).includes(t.id)),B=[['Resumo',t.desc],['Fisiopatologia',t.fisio],['Classificação',t.classif],['Diagnóstico',t.dx],['Diagnósticos diferenciais',t.ddx],['Exames complementares',t.exams],['Tratamento e conduta',t.tx],['Complicações',t.compl],['Particularidades para provas',t.tips],['Outros subtópicos',t.outros]].filter(x=>x[1]);return `<div class="row"><button class="b2" onclick="OT='';go()">← Biblioteca</button><h1 class="gr">${e(t.name)}</h1>${driveButton(t)}<button class="b2" onclick="edTheme('${t.id}')">Editar</button><button class="b2" onclick="del('themes','${t.id}')">Excluir</button></div><div class="card"><div class="row"><span class="gr">${e(t.area)} › ${e(t.esp||'—')}</span><select onchange="setTh('${t.id}',this.value)">${O(['Não estudado','Em estudo','Estudado','Revisado'],t.st||'Não estudado')}</select></div>${f?`<p>${pb(t)} <small>${f.p.toFixed(2).replace('.',',')}% dos itens de ${e(f.esp)} no Guia Estatístico (percentual dentro da especialidade; base: Revalida INEP 2011–2025 + ENAMED/ENARE 2025/26). Frequência histórica, não garantia de cobrança.</small></p>`:''}${t.src?`<small>Fonte: ${e(t.src)}</small>`:''}${t.mat?`<br><small>Materiais nas suas pastas: ${t.mat.split('').map(c=>({E:'Estratégia',M:'Medcof',W:'Medway'}[c])).join(', ')}</small>`:''}</div>`+(B.length?B.map(x=>`<div class="card"><small>${x[0]}</small><br>${e(x[1])}</div>`).join(''):'')+`<button class="b2" onclick="QF={theme:'${t.id}'};to('questoes','questoes','q')">Questões deste assunto (${S.qs.filter(q=>q.theme==t.id).length})</button>`}
 
 // Registros externos: anota somente os totais, sem exigir o enunciado de cada questão.
 function logQuestions(id=null,presetCon=''){
@@ -673,7 +686,7 @@ let INC_SUBJECTS = null;
 let INC_REPLACE = null;
 const INC_STOP=new Set(['de','da','do','dos','das','em','na','no','nas','nos','e','para','com','por','um','uma','ao','aos','as','os','à','o','a']);
 const incNorm=s=>nm(s).replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ')
-  .split(' ').map(w=>INC_REPLACE[w]||w).join(' ');
+  .split(' ').map(w=>(INC_REPLACE||{})[w]||w).join(' ');
 const incHas=(hay,needle)=>!!needle&&(' '+hay+' ').includes(' '+needle+' ');
 const incStem=w=>{
   if(w.endsWith('oes')&&w.length>=7)return w.slice(0,-3)+'ao';
@@ -741,7 +754,7 @@ const incMatchScore=(input,alias)=>incMatchDetail(input,alias).score;
 const incSubject=(name)=>{
   const n=incNorm(name),found=[];
   // Ginecologia e Obstetrícia: preservar as duas áreas, sem restringir à primeira.
-  for(const [area, aliases] of Object.entries(INC_SUBJECTS))
+  for(const [area, aliases] of Object.entries(INC_SUBJECTS||{}))
     if(aliases.some(a=>incHas(n,incNorm(a)) || (incNorm(a).length>=6&&n.includes(incNorm(a))))) found.push(area);
   // Quando o usuário cadastra "Clínica Médica", "SP", "Morfofuncional", etc.,
   // o assunto pode pertencer a várias especialidades: não impor uma classificação arbitrária.
@@ -769,7 +782,7 @@ function incTopMatches(name,accepted){
 }
 function incCandidates(name,areas){
   const found=[];
-  for(const [key,aliases] of Object.entries(INC_ALIASES)){
+  for(const [key,aliases] of Object.entries(INC_ALIASES||{})){
     const [esp,tm]=key.split('|');
     if(areas.length&&!areas.includes(esp))continue;
     const row=(GT[esp]||[]).find(t=>t[0]===tm);
@@ -1098,7 +1111,7 @@ function mpRoot(x){return incNorm(x).replace(/\b(do|da|de|dos|das|e|na|no|em|com
 function mpSubtopics(t){
  const key=incNorm(t.name),root=mpRoot(t.name),found=[],added=new Set(),specialty=driveSubject(t.esp);
  const addOne=(name,source='',link=null)=>{const k=incNorm(name);if(k===key||added.has(k)||!k)return;added.add(k);found.push({name,source,link})};
- const listed=MP_VERIFIED_TOPICS[key]||MP_VERIFIED_TOPICS[key.replace(/s$/,'')]||[];
+ const listed=(MP_VERIFIED_TOPICS||{})[key]||(MP_VERIFIED_TOPICS||{})[key.replace(/s$/,'')]||[];
  // Somente conceitos documentados nos índices consultados, sem gerar texto médico novo.
  listed.forEach(name=>addOne(name,'índice de aula'));
  // Nas páginas com um índice específico, não misturar subtópicos de outras áreas apenas pelo nome parecido.
@@ -1108,7 +1121,7 @@ function mpSubtopics(t){
    const words=mpRoot(x.name),matches=root.filter(w=>words.some(y=>y===w||y.startsWith(w)||w.startsWith(y)));
    if(matches.length&&(matches.length>=Math.min(2,root.length)||root.length===1))addOne(x.name,'Biblioteca',x.id);
   });
-  for(const [full,files] of Object.entries(DRIVE_AULAS_INDEX)){
+  for(const [full,files] of Object.entries(DRIVE_AULAS_INDEX||{})){
    const cut=full.indexOf('|');if(full.slice(0,cut)!==specialty)continue;
    const title=full.slice(cut+1),tw=mpRoot(title);
    if(tw.some(w=>root.some(r=>w===r||w.startsWith(r)||r.startsWith(w)))&&title.length>t.name.length) addOne(title,'aula catalogada');
@@ -1188,12 +1201,15 @@ window.medpathHydrate=(catalog,state)=>{
   for(const key of ['G1','G2','DRIVE_AULAS_INDEX','DRIVE_TOPIC_EXTRA','LIST','INC_ALIASES','INC_SUBJECTS','INC_REPLACE','MP_VERIFIED_TOPICS']){
     if(!Object.prototype.hasOwnProperty.call(catalog,key))throw Error('Catálogo incompleto: '+key);
   }
+  if(typeof catalog.G1!=='string'||!catalog.G2||typeof catalog.G2!=='object'||typeof catalog.LIST!=='string')throw Error('Catálogo com formato inválido: G1, G2 ou LIST');
   G1=catalog.G1;G2=catalog.G2;DRIVE_AULAS_INDEX=catalog.DRIVE_AULAS_INDEX;DRIVE_TOPIC_EXTRA=catalog.DRIVE_TOPIC_EXTRA;LIST=catalog.LIST;
   INC_ALIASES=catalog.INC_ALIASES;INC_SUBJECTS=catalog.INC_SUBJECTS;INC_REPLACE=catalog.INC_REPLACE;MP_VERIFIED_TOPICS=catalog.MP_VERIFIED_TOPICS;
   GE=G1.split(';').map(x=>x.split('|'));GT=Object.fromEntries(Object.entries(G2).map(([k,v])=>[k,v.split(';').map(x=>x.split('|'))]));
   WL=null;INC_TOP=null;S=state&&typeof state==='object'?state:blank();
   for(const key of ['subs','cons','themes','qs','ans','errs','tasks','hist','qsessions'])if(!Array.isArray(S[key]))S[key]=[];
-  if(!S.cfg||typeof S.cfg!=='object')S.cfg=blank().cfg;
+  S.cfg={...blank().cfg,...(S.cfg&&typeof S.cfg==='object'&&!Array.isArray(S.cfg)?S.cfg:{})};
+  if(!Array.isArray(S.cfg.hrs)||S.cfg.hrs.length!==7)S.cfg.hrs=blank().cfg.hrs;
+  S.cons.forEach(c=>{if(!Array.isArray(c.themes))c.themes=[];if(!c.cx||typeof c.cx!=='object')c.cx={};});
   window.medpathStart();
 };
 
