@@ -998,16 +998,19 @@ function libPanel(c){
 }
 
 const th10=s=>`<span class="th"${s==null?' title="Dados insuficientes no guia"':''}>${[...Array(10)].map((_,i)=>`<i${s!=null&&i<s?' class="on"':''}></i>`).join('')}</span><b${s==null?' class="mu"':''}>${s==null?'—':s}/10</b>`;
-function crow(c){
- const r=rel(c),first=r.temas[0];
- const meta=first?`<span class="inc-pill ${first.p>=20?'inc-high':first.p>=10?'inc-medium':'inc-low'}">${e(first.lv)} · ${first.p.toFixed(2).replace('.',',')}% na especialidade</span>`:'';
- const found=libForCon(c,6),primary=found[0];
- const library=primary?`<button class="b2" onclick="openTh('${primary.t.id}')">Ver na Biblioteca</button>`:`<button class="b2" onclick="chooseLib('${c.id}')">Buscar na Biblioteca</button>`;
- return `<details class="cr"${OPEN[c.id]?' open':''} ontoggle="TG('${c.id}',this.open)"><summary><span class="gr">${e(c.name)}</span>${meta}${r.s==null?'':th10(r.s)}<span class="ar">⌄</span></summary><div class="ex mp-compact-content">
- <div class="row mp-compact-actions">${library}<label class="mp-compact-association"><small>Associação ao guia</small><select aria-label="Associação estatística" onchange="setIncMatch('${c.id}',this.value)">${O(incOptions(c),c.incMatch||'')}</select></label></div>
- <div class="row mp-compact-actions">${studied(c)?`<span class="mp-compact-dates">Iniciado em <b>${fmt(c.started)}</b> · próxima revisão <b>${fmt(c.next)}</b>${c.next<D()?' · atrasada':''}</span>`:`<button class="b2" onclick="markStudied('${c.id}')">Iniciar estudo hoje</button>`}<button class="b2" onclick="logQuestions(null,'${c.id}')">+ Questões feitas</button><button class="b2" onclick="to('cronograma','cron','r')">Revisões</button></div>
- <div class="row mp-compact-actions"><select aria-label="Progresso do conteúdo" onchange="setSt('${c.id}',this.value)">${O(ST,c.status)}</select><span class="gr"></span><button class="x" title="Editar conteúdo" aria-label="Editar conteúdo" onclick="edCon('${c.id}')">✎</button><button class="x" title="Excluir conteúdo" aria-label="Excluir conteúdo" onclick="del('cons','${c.id}')">✕</button></div></div></details>`;
-}
+function crow(c){const r=rel(c),top=r.temas.slice(0,5),rf=top.find(x=>x.t),first=top[0],shown=r.s!=null;
+const meta=first?`<span class="inc-pill ${first.p>=20?'inc-high':first.p>=10?'inc-medium':'inc-low'}">${e(first.lv)} · ${first.p.toFixed(2).replace('.',',')}% na especialidade</span>`:'';
+const sourceSubject=sub(c.sub)?.name||"";
+const diffSpec=first&&incSubject(sourceSubject).length&&!incSubject(sourceSubject).includes(first.esp);
+const matches=libForCon(c,6),primary=matches[0];
+const libraryButton=primary?`<button class="b2" onclick="openTh('${primary.t.id}')">Ver na Biblioteca</button>`:`<button class="b2" onclick="chooseLib('${c.id}')">Ver na Biblioteca</button>`;
+return `<details class="cr"${OPEN[c.id]?' open':''} ontoggle="TG('${c.id}',this.open)"><summary><span class="gr">${e(c.name)}</span>${meta}${r.s==null?'':th10(r.s)}<span class="ar">⌄</span></summary>
+<div class="ex" style="display:grid;gap:12px;padding:14px 8px">
+  <div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><small class="mu">Biblioteca</small>${libraryButton}</div>
+  <div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><small class="mu">Associação ao guia</small><select style="max-width:420px;flex:1;min-width:180px" aria-label="Associação ao guia" onchange="setIncMatch('${c.id}',this.value)">${O(incOptions(c),c.incMatch||'')}</select></div>
+  ${studied(c)?`<small class="mu">Iniciado em <b>${fmt(c.started)}</b> · Próxima revisão <b>${fmt(c.next)}</b>${c.next<D()?' · Atrasada':''}</small>`:''}
+  <div class="row" style="gap:8px;flex-wrap:wrap"><button class="b2" onclick="logQuestions(null,'${c.id}')">+ Questões</button><button class="b2" onclick="to('cronograma','cron','r')">Revisões</button><select aria-label="Progresso do conteúdo" onchange="setSt('${c.id}',this.value)">${O(ST,c.status)}</select></div>
+</div></details>`}
 
 function openSub(id){BK=null;fsel=id;to('semestres','semestres','disc')}
 V.faculdade=()=>{if(fsel&&sub(fsel)){const s=sub(fsel),cs=S.cons.filter(c=>c.sub==s.id),ids=cs.map(c=>c.id);return `<div class="row"><button class="b2" onclick="fsel='';go()">← Voltar</button><h1 class="gr">${e(s.name)}</h1><button class="b2" onclick="edSub('${s.id}')">Editar</button><button class="b2" onclick="del('subs','${s.id}')">Excluir</button></div><div class="card"><small>${s.sem}º semestre</small><p>${e(s.desc)||'<span class="mu">Sem descrição.</span>'}</p></div><div class="card"><div class="row"><h3 class="gr">Conteúdos</h3><button class="b" onclick="edCon(0,'${s.id}')">+ Conteúdo</button></div>${cs.length?cs.map(crow).join(''):'<p class="mu">Adicione os assuntos desta disciplina.</p>'}</div><div class="grid"><div class="card"><h3>Materiais</h3>${e(s.mat)||'<span class="mu">—</span>'}</div><div class="card"><h3>Anotações</h3>${e(s.notes)||'<span class="mu">—</span>'}</div><div class="card"><h3>Questões relacionadas</h3>${S.qs.filter(q=>ids.includes(q.con)).length}</div></div><div class="card"><h3>Histórico de aprendizagem</h3>${S.hist.filter(x=>ids.includes(x.con)).slice(-10).reverse().map(x=>`<small>${fmt(x.d)} · ${e(con(x.con)?.name)} — ${e(x.ev)}</small>`).join('<br>')||'<span class="mu">Sem registros.</span>'}</div>`}
@@ -1226,6 +1229,3 @@ window.medpathHydrate=(catalog,state)=>{
 };
 
 window.medpathGetState=()=>S;
-
-/* Layout compacto da expansão de conteúdos; não altera a incidência. */
-(function(){const css=document.createElement('style');css.textContent=`.mp-compact-content{display:grid;gap:12px;padding-top:14px;padding-bottom:14px}.mp-compact-actions{gap:10px;align-items:center;flex-wrap:wrap}.mp-compact-association{display:flex;align-items:center;gap:9px;flex:1;min-width:230px}.mp-compact-association select{flex:1;min-width:160px}.mp-compact-dates{flex:1;min-width:220px;font-size:13px;color:var(--muted,#8aa0b8)}.mp-compact-content .b2{white-space:nowrap}.mp-compact-content .row{margin:0}@media(max-width:680px){.mp-compact-association{flex-wrap:wrap}.mp-compact-association select{width:100%}}`;document.head.append(css)})();
