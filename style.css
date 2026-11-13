@@ -123,3 +123,8 @@ dialog{background:var(--c);color:var(--t);border:1px solid var(--b);border-radiu
 .mp-track>div{background:var(--g);height:100%;border-radius:9px}
 .mp-trend svg{max-width:100%;width:100%;height:auto}.mp-trend-labels{display:flex;gap:6px;justify-content:space-between;overflow-x:auto}.mp-trend-labels>div{display:grid;gap:1px;text-align:center;min-width:48px}.mp-trend-labels strong{font-size:13px}
 .mp-subtopics h3{font-size:15px}.mp-subtle{font-size:12px;color:var(--m)}.mp-topic-list>div{padding:9px 0;border-bottom:1px solid var(--b)}.mp-topic-list>div:last-child{border-bottom:0}
+
+/* Links internos de assuntos e disciplinas com aparência de texto normal. */
+main a:not(.drive-file),main a:not(.drive-file):visited{color:var(--t);text-decoration:none}
+main a:not(.drive-file):hover{text-decoration:none;color:var(--t)}
+main a:not(.drive-file):focus-visible{outline:2px solid var(--p);outline-offset:2px;border-radius:2px}
