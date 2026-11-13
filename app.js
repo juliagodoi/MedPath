@@ -34,8 +34,22 @@ function dom(c){
   if((c.revs||0)>=1)return 3;
   return 2;
 }
+// Revisões fixas: 1, 7 e 30 dias contados da data inicial.
+const MP_REVIEW_DAYS=[1,7,30];
+function mpReviewSlots(c){
+  if(!studied(c)||!calendarValidDate(c.started))return [];
+  const done=c.review137Done&&typeof c.review137Done==='object'?c.review137Done:{};
+  return MP_REVIEW_DAYS.map((day,index)=>({day,index:index+1,due:add(c.started,day),done:!!done[day]}));
+}
+function mpSyncNext(c){
+  if(!c)return;
+  const next=mpReviewSlots(c).find(x=>!x.done);
+  c.next=next?next.due:'';
+  c.int=next?next.day:30;
+}
+function mpReviewReset(c){c.review137Done={};mpSyncNext(c)}
 const chip=c=>`<span class="chip" style="background:${DC[dom(c)]}">${DL[dom(c)]}</span>`,dueList=()=>S.cons.filter(c=>studied(c)&&c.next&&c.next<=D()).sort((a,b)=>a.next<b.next?-1:1);
-const scoreText=c=>{const z=scorePlan(c);return `<span class="rev-priority">${z.a.n?`<b>${z.a.p}% de acertos</b> · ${z.a.ok}/${z.a.n} questões · `:''}${mpEscapeHtml(z.name)} · revisão a cada ${z.days} ${z.days===1?'dia':'dias'}${z.a.n&&z.a.n<5?' (dados iniciais)':''}</span>`};
+const scoreText=c=>`<span class="rev-priority">Revisão espaçada: 1 · 7 · 30 dias após o início</span>`;
 const O=(l,s)=>l.map(x=>{x=Array.isArray(x)?x:[x,x];return `<option value="${mpEscapeHtml(x[0])}"${x[0]==s?' selected':''}>${mpEscapeHtml(x[1])}</option>`}).join(''),subO=()=>S.subs.map(s=>[s.id,`${s.sem}º · ${s.name}`]),conO=()=>[['','—'],...S.cons.map(c=>[c.id,c.name])],thO=()=>[['','—'],...S.themes.map(t=>[t.id,t.name])];
 function F(title,fl,v,cb){v=v||{};const d=document.createElement('dialog');
 const inp=([k,l,t,o,r])=>{let x;if(t=='a')x=`<textarea id="f_${k}">${mpEscapeHtml(v[k])}</textarea>`;else if(t=='s')x=`<select id="f_${k}">${O(typeof o=='function'?o():o,v[k])}</select>`;else if(t=='m')x=(o().map(z=>`<span class="ck"><input type="checkbox" name="f_${k}" value="${z[0]}"${(v[k]||[]).includes(z[0])?' checked':''}> ${mpEscapeHtml(z[1])}</span>`).join('')||'<small>Nada cadastrado ainda.</small>');else x=`<input id="f_${k}" type="${t||'text'}" value="${mpEscapeHtml(v[k])}">`;return `<div class="fl"><span>${l}${r?' *':''}</span>${x}</div>`};
@@ -68,9 +82,8 @@ function fix(c,wasStudied=false,dateChanged=false){
     c.started=calendarValidDate(c.studied)?c.studied:D();changed=true;
   }
   if(c.studied!==c.started){c.studied=c.started;changed=true}
-  if(!calendarValidDate(c.next)||!wasStudied||dateChanged){
-    c.int=1;c.next=add(c.started,1);changed=true;
-  }
+  if(!wasStudied||dateChanged){mpReviewReset(c);changed=true}
+  else {const before=c.next;mpSyncNext(c);if(before!==c.next)changed=true}
   return changed;
 }
 function repairReviews(){
@@ -84,7 +97,7 @@ function setSt(i,status){
   if(studied(c)){
     if(!calendarValidDate(c.started))c.started=D();
     fix(c,was);
-  }else{c.started='';c.studied='';c.next=''}
+  }else{c.started='';c.studied='';c.next='';c.review137Done={}}
   if(old!==status)S.hist.push({d:D(),con:i,ev:'Status: '+status});
   save();go();
 }
@@ -92,7 +105,7 @@ function updateStart(i,date){
   const c=con(i);if(!c||!calendarValidDate(date))return;
   c.started=date;
   if(!studied(c))c.status='Em andamento';
-  c.studied=date;c.next=add(date,1);c.int=1;
+  c.studied=date;mpReviewReset(c);
   S.hist.push({d:D(),con:i,ev:'Início do estudo: '+fmt(date)});
   save();go();
 }
@@ -102,16 +115,16 @@ function markStudied(i){
 }
 function changeReviewDate(i){
   const c=con(i);if(!c||!studied(c))return;
-  F('Alterar próxima revisão',[['next','Data','date',0,1]],{next:c.next||add(D(),1)},o=>{
-    if(!calendarValidDate(o.next))return;c.next=o.next;
-    S.hist.push({d:D(),con:i,ev:'Revisão reagendada: '+fmt(o.next)});
-  });
+  alert('As revisões seguem as datas fixas de 1, 7 e 30 dias após o início do estudo. Para alterar as datas, edite a data de início do conteúdo.');
 }
-function completeReview(i){
+function completeReview(i,day){
   const c=con(i);if(!c||!studied(c))return;
-  const z=scorePlan(c);
-  c.int=z.days;c.next=add(D(),z.days);c.last=D();c.revs=(Number(c.revs)||0)+1;
-  S.hist.push({d:D(),con:i,ev:'Revisão concluída — '+z.name+(z.a.n?' ('+z.a.p+'% em '+z.a.n+' questões)':'')});
+  const slot=mpReviewSlots(c).find(x=>x.day===Number(day))||mpReviewSlots(c).find(x=>!x.done);
+  if(!slot||slot.done)return;
+  if(!c.review137Done||typeof c.review137Done!=='object')c.review137Done={};
+  c.review137Done[slot.day]=D();c.last=D();c.revs=(Number(c.revs)||0)+1;
+  mpSyncNext(c);
+  S.hist.push({d:D(),con:i,ev:'Revisão concluída — '+slot.day+' dia(s) (prevista para '+fmt(slot.due)+')'});
   save();go();
 }
 function rev(i){completeReview(i)}
@@ -125,7 +138,7 @@ function edCon(id,sb){
     if(studied(c)){
       if(!calendarValidDate(c.started))c.started=D();
       fix(c,was,!!oldDate&&c.started!==oldDate);
-    }else{c.next='';c.studied='';c.started=''}
+    }else{c.next='';c.studied='';c.started='';c.review137Done={}}
   });
   if(dlg){
     const field=dlg.querySelector('#f_name');
@@ -164,7 +177,7 @@ function pick(qid,i){
   const c=con(q.con);
   if(c){
     if(!studied(c)){c.status='Em andamento';c.started=D();c.studied=D()}
-    c.next=add(D(),scorePlan(c).days);c.int=scorePlan(c).days;
+    mpSyncNext(c);
   }
   save();go();
 }
@@ -278,23 +291,23 @@ function mcToday(){MC_VIEW=null;MC_SELECTED=null;go()}
 // Revisões são eventos calculados em tempo real a partir da data c.next.
 // Atrasadas aparecem no dia de hoje, indicando a data original de vencimento.
 function mcAutoRevisions(){
-  const today=D();
-  return S.cons.filter(c=>studied(c)&&calendarValidDate(c.next)).map(c=>({
-    autoReview:true,con:c.id,p:'Revisão',due:c.next,
-    date:c.next<today?today:c.next,
-    txt:(c.next<today?'Revisão atrasada: ':'Revisar: ')+c.name
-  }));
+  return S.cons.filter(studied).flatMap(c=>mpReviewSlots(c).map(slot=>({
+    autoReview:true,con:c.id,p:'Revisão',due:slot.due,date:slot.due,
+    reviewDay:slot.day,reviewIndex:slot.index,done:slot.done,
+    txt:(slot.done?'Revisão concluída: ':'Revisar: ')+c.name+' ('+slot.index+'ª revisão)'
+  })));
 }
 // Oculta somente tarefas de revisão geradas automaticamente por versões antigas,
 // quando já existe a revisão calculada correspondente. Nunca apaga dados.
 function mcVisibleTask(t){
   if(t.p!=='Revisão'||t.manual||t.done||!t.con)return true;
   const c=con(t.con);
-  return !(c&&studied(c)&&calendarValidDate(c.next));
+  return !(c&&studied(c)&&mpReviewSlots(c).length);
 }
 function mcRevisionRow(item){
   const c=con(item.con);if(!c)return '';
-  return `<div class="row tk mc-auto-review"><span class="gr"><span class="mc-review-label">${item.due<D()?'Revisão atrasada':'Revisão programada'}</span><br><b>${mpEscapeHtml(c.name)}</b><br><small>${mpEscapeHtml(sub(c.sub)?.name||'')} · prevista ${fmt(item.due)}</small><br>${scoreText(c)}</span><div class="mc-review-actions"><button class="b2" onclick="logQuestions(null,'${c.id}')">+ Questões</button><button class="b" onclick="completeReview('${c.id}')">Concluir revisão</button></div></div>`;
+  const status=item.done?'Concluída':item.due<D()?'Atrasada':'Programada';
+  return `<div class="row tk mc-auto-review"><span class="gr"><span class="mc-review-label">${item.reviewIndex}ª revisão · ${status}</span><br><b>${mpEscapeHtml(c.name)}</b><br><small>${mpEscapeHtml(sub(c.sub)?.name||'')} · ${fmt(item.due)} · D+${item.reviewDay}</small></span><div class="mc-review-actions">${item.done?'<small>Concluída ✓</small>':`<button class="b2" onclick="logQuestions(null,'${c.id}')">+ Questões</button><button class="b" onclick="completeReview('${c.id}',${item.reviewDay})">Concluir revisão</button>`}</div></div>`;
 }
 
 function mcCalendar(){
@@ -324,7 +337,7 @@ V.revisoes=()=>{
  const today=D(),all=S.cons.filter(c=>studied(c)&&calendarValidDate(c.next)).sort((a,b)=>a.next.localeCompare(b.next)||a.name.localeCompare(b.name));
  const overdue=all.filter(c=>c.next<today),due=all.filter(c=>c.next===today),upcoming=all.filter(c=>c.next>today);
  const task=(c,ready)=>`<div class="row tk"><span class="gr"><b>${mpEscapeHtml(c.name)}</b><br><small>${mpEscapeHtml(sub(c.sub)?.name||'Sem disciplina')} · ${fmt(c.next)}</small><br>${scoreText(c)}</span><div class="q-log-actions"><button class="b2" onclick="logQuestions(null,'${c.id}')">+ Questões</button>${ready?`<button class="b" onclick="completeReview('${c.id}')">Concluir revisão</button>`:''}<button class="b2" onclick="changeReviewDate('${c.id}')">Data</button></div></div>`;
- return `<h1>Revisões</h1><p class="review-board-intro mu">A primeira revisão é agendada para o dia seguinte ao início do estudo. Depois, os intervalos são ajustados pelo desempenho nas questões registradas. Você também pode concluir uma revisão sem registrar questões.</p>
+ return `<h1>Revisões</h1><p class="review-board-intro mu">A primeira revisão é agendada para o dia seguinte ao início do estudo. As outras revisões ocorrem 7 e 30 dias após o início do estudo. Você também pode concluir uma revisão sem registrar questões.</p>
  <div class="grid"><div class="card"><small>Atrasadas</small><div class="big">${overdue.length}</div></div><div class="card"><small>Hoje</small><div class="big">${due.length}</div></div><div class="card"><small>Próximas</small><div class="big">${upcoming.length}</div></div></div>
  <div class="card review-due"><h3>Atrasadas</h3>${overdue.map(c=>task(c,true)).join('')||'<div class="review-empty">Nenhuma revisão atrasada.</div>'}</div>
  <div class="card review-due"><h3>Hoje</h3>${due.map(c=>task(c,true)).join('')||'<div class="review-empty">Nenhuma revisão para hoje.</div>'}</div>
@@ -571,11 +584,11 @@ function logQuestions(id=null,presetCon=''){
     if(!studied(c)){c.status='Em andamento';c.started=date;c.studied=date}
     if(!calendarValidDate(c.started))c.started=date;
     // Recalcular o intervalo com todos os acertos/erros disponíveis para o assunto.
-    const interval=scorePlan(c).days;c.int=interval;
+    const interval=scorePlan(c).days;
     // Mantém a próxima revisão vinculada à data do último exercício, sem retroceder o relógio.
     const latest=(S.qsessions||[]).filter(x=>x.con===c.id).reduce((v,x)=>x.date>v?x.date:v,'');
-    c.next=add(latest||date,interval);
-    if(previous&&studied(previous)){const oldScore=scorePlan(previous),oldLatest=(S.qsessions||[]).filter(x=>x.con===previous.id).reduce((v,x)=>x.date>v?x.date:v,'');previous.int=oldScore.days;previous.next=oldLatest?add(oldLatest,oldScore.days):previous.last?add(previous.last,oldScore.days):add(previous.started,1)}
+    mpSyncNext(c);
+    if(previous&&studied(previous)){const oldScore=scorePlan(previous),oldLatest=(S.qsessions||[]).filter(x=>x.con===previous.id).reduce((v,x)=>x.date>v?x.date:v,'');mpSyncNext(previous)}
     S.hist.push({d:D(),con:c.id,ev:`Questões registradas: ${entry.correct}/${entry.total} (${Math.round(entry.correct/entry.total*100)}%)`});
     d.remove();save();go();
   };
@@ -585,9 +598,7 @@ function deleteLog(id){C('Excluir este registro de questões?',()=>{
   const x=(S.qsessions||[]).find(y=>y.id===id),c=x&&con(x.con);
   S.qsessions=(S.qsessions||[]).filter(y=>y.id!==id);
   if(c&&studied(c)){
-    const z=scorePlan(c);c.int=z.days;
-    const last=(S.qsessions||[]).filter(y=>y.con===c.id).reduce((v,y)=>y.date>v?y.date:v,'');
-    c.next=last?add(last,z.days):c.last?add(c.last,z.days):add(c.started,1);
+    mpSyncNext(c);
   }
   save();go();
 })}
