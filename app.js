@@ -673,7 +673,15 @@ diuretico|(^| )ieca|betabloqueador|anti hipertensivo@hipertensao arterial,insufi
 anticoagulante|heparina|varfarina|antiagregante@hemostasia,arritmias cardiacas
 inflamacao|anti inflamatorio|(^| )aine|corticoide@artropatias inflamatorias,doencas autoimunes,asma
 dislipidemia|lipidio@aterosclerose,obesidade`.split('\n').map(l=>{const[a,b]=l.split('@');return[new RegExp(a),b.split(',')]});
-let WL=null;const wl=()=>WL||(WL=GE.flatMap(x=>GT[x[0]].map(([t,q])=>({esp:x[0],tm:t,n:nm(t),w:+x[2]*+q/100})))),WM=()=>Math.max(...wl().map(x=>x.w));
+// O guia estatístico pode não conter tópicos para todas as especialidades.
+// Não inventar frequências: ignorar entradas ausentes e preservar os dados existentes.
+let WL=null;
+const wl=()=>WL||(WL=(Array.isArray(GE)?GE:[]).flatMap(x=>
+  (Array.isArray(GT?.[x[0]])?GT[x[0]]:[]).map(([t,q])=>({
+    esp:x[0],tm:t,n:nm(t),w:(Number(x[2])||0)*(Number(q)||0)/100
+  }))
+));
+const WM=()=>Math.max(0,...wl().map(x=>x.w));
 const sc=w=>w>0?Math.max(1,Math.min(10,Math.round(10*Math.sqrt(w/WM())))):0;
 
 /* MedPath: associação automática de conteúdos às especialidades e temas do Guia Estatístico.
