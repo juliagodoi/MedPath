@@ -35,6 +35,7 @@ if(auth)onAuthStateChanged(auth,async user=>{
   if(!catSnap.exists())throw Error('Catálogo privado ainda não foi importado.');
   if(currentUid!==user.uid)return;
   const catalog=catSnap.data().dataJson?JSON.parse(catSnap.data().dataJson):catSnap.data().data;
+  if(typeof window.medpathHydrate!=='function')throw Error('O aplicativo não foi inicializado. Atualize a página para carregar a versão mais recente.');
   window.medpathHydrate(catalog,stateSnap.exists()?(stateSnap.data().dataJson?JSON.parse(stateSnap.data().dataJson):stateSnap.data().data):null);
   loaded=true;document.body.classList.add('ready');session.hidden=false;setStatus('Sincronizado');err.textContent='';
   // Estado inicial gerado por migrações deve ser persistido no perfil correto.
