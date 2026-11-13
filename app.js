@@ -793,14 +793,18 @@ function incCandidates(name,areas){
   for(const [key,aliases] of Object.entries(INC_ALIASES||{})){
     const [esp,tm]=key.split('|');
     if(areas.length&&!areas.includes(esp))continue;
-    const row=(GT[esp]||[]).find(t=>t[0]===tm);
+    // O catálogo pode usar maiúsculas/acentos diferentes nos nomes dos temas.
+    // Localizar pelo nome normalizado e preservar os nomes canônicos de GT.
+    const realEsp=Object.keys(GT).find(k=>incNorm(k)===incNorm(esp));
+    if(!realEsp)continue;
+    const row=(GT[realEsp]||[]).find(t=>incNorm(t[0])===incNorm(tm));
     if(!row)continue;
-    let best=incMatchDetail(name,tm);
+    let best=incMatchDetail(name,row[0]);
     for(const alias of aliases){
       const candidate=incMatchDetail(name,alias);
       if(candidate.score>best.score)best=candidate;
     }
-    if(best.score>=110)found.push({esp,tm,p:+row[1],score:best.score,
+    if(best.score>=110)found.push({esp:realEsp,tm:row[0],p:+row[1],score:best.score,
       matchType:best.kind,matchedAlias:best.alias});
   }
   return found.sort((a,b)=>b.score-a.score||b.p-a.p);
