@@ -1004,7 +1004,7 @@ const sourceSubject=sub(c.sub)?.name||"";
 const diffSpec=first&&incSubject(sourceSubject).length&&!incSubject(sourceSubject).includes(first.esp);
 const matches=libForCon(c,6),primary=matches[0];
 const libraryButton=primary?`<button class="b2" onclick="openTh('${primary.t.id}')">Ver na Biblioteca</button>`:`<button class="b2" onclick="chooseLib('${c.id}')">Ver na Biblioteca</button>`;
-return `<details class="cr"${OPEN[c.id]?' open':''} ontoggle="TG('${c.id}',this.open)"><summary><span class="gr">${e(c.name)}</span>${meta}${r.s==null?'':th10(r.s)}<span class="ar">⌄</span></summary>
+return `<details class="cr"${OPEN[c.id]?' open':''} ontoggle="TG('${c.id}',this.open)"><summary><span class="gr">${e(c.name)}</span>${meta}${r.s==null?'':th10(r.s)}<button type="button" class="x" title="Excluir conteúdo" aria-label="Excluir conteúdo" onclick="event.preventDefault();event.stopPropagation();del('cons','${c.id}')">✕</button><span class="ar">⌄</span></summary>
 <div class="ex" style="display:grid;gap:12px;padding:14px 8px">
   <div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><small class="mu">Biblioteca</small>${libraryButton}</div>
   <div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><small class="mu">Associação ao guia</small><select style="max-width:420px;flex:1;min-width:180px" aria-label="Associação ao guia" onchange="setIncMatch('${c.id}',this.value)">${O(incOptions(c),c.incMatch||'')}</select></div>
