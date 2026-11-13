@@ -128,3 +128,7 @@ dialog{background:var(--c);color:var(--t);border:1px solid var(--b);border-radiu
 main a:not(.drive-file),main a:not(.drive-file):visited{color:var(--t);text-decoration:none}
 main a:not(.drive-file):hover{text-decoration:none;color:var(--t)}
 main a:not(.drive-file):focus-visible{outline:2px solid var(--p);outline-offset:2px;border-radius:2px}
+
+/* Ações discretas para editar e excluir conteúdos */
+.cr summary button.x{font-size:16px;min-width:25px;min-height:28px;display:inline-flex;align-items:center;justify-content:center;flex:none;opacity:.72}
+.cr summary button.x:hover,.cr summary button.x:focus-visible{opacity:1;color:var(--p)}

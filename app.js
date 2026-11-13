@@ -146,7 +146,7 @@ function rev(i){completeReview(i)}
 function edCon(id,sb){
   const old=id?con(id):null,sbId=old?.sub||sb;
   const v=old?{...old,started:old.started||old.studied||''}:{status:'Não iniciado',started:''};
-  const dlg=F('Conteúdo',[['name','Nome do conteúdo','text',0,1],['status','Status','s',ST],['started','Data de início','date']],v,o=>{
+  const dlg=F('Editar conteúdo',[['name','Nome do conteúdo','text',0,1],['status','Status','s',ST],['started','Data de início','date'],['incMatch','Associação ao guia','s',()=>incOptions(old||{name:v.name||'',sub:sbId,incMatch:''})]],v,o=>{
     let c=id?con(id):null;
     const was=!!c&&studied(c),oldDate=c?.started||'';
     if(c)Object.assign(c,o);else{c={id:U(),sub:sb,themes:[],cx:{},...o};S.cons.push(c)}
@@ -1028,7 +1028,7 @@ const sourceSubject=sub(c.sub)?.name||"";
 const diffSpec=first&&incSubject(sourceSubject).length&&!incSubject(sourceSubject).includes(first.esp);
 const matches=libForCon(c,6),primary=matches[0];
 const libraryButton=primary?`<button class="b2" onclick="openTh('${primary.t.id}')">Ver na Biblioteca</button>`:`<button class="b2" onclick="chooseLib('${c.id}')">Ver na Biblioteca</button>`;
-return `<details class="cr"${OPEN[c.id]?' open':''} ontoggle="TG('${c.id}',this.open)"><summary><span class="gr">${mpEscapeHtml(c.name)}</span>${meta}${r.s==null?'':th10(r.s)}<button type="button" class="x" title="Excluir conteúdo" aria-label="Excluir conteúdo" onclick="event.preventDefault();event.stopPropagation();del('cons','${c.id}')">✕</button><span class="ar">⌄</span></summary>
+return `<details class="cr"${OPEN[c.id]?' open':''} ontoggle="TG('${c.id}',this.open)"><summary><span class="gr">${mpEscapeHtml(c.name)}</span>${meta}${r.s==null?'':th10(r.s)}<button type="button" class="x" title="Editar conteúdo" aria-label="Editar conteúdo" onclick="event.preventDefault();event.stopPropagation();edCon('${c.id}')">✎</button><button type="button" class="x" title="Excluir conteúdo" aria-label="Excluir conteúdo" onclick="event.preventDefault();event.stopPropagation();del('cons','${c.id}')">✕</button><span class="ar">⌄</span></summary>
 <div class="ex" style="display:grid;gap:12px;padding:14px 8px">
   <div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><small class="mu">Biblioteca</small>${libraryButton}</div>
   <div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><small class="mu">Associação ao guia</small><select style="max-width:420px;flex:1;min-width:180px" aria-label="Associação ao guia" onchange="setIncMatch('${c.id}',this.value)">${O(incOptions(c),c.incMatch||'')}</select></div>
