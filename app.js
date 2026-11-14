@@ -555,16 +555,42 @@ function showDriveFiles(tId){
 }
 const driveButton=t=>`<button class="b2" onclick="showDriveFiles('${t.id}')" title="Abrir PDFs do assunto no Google Drive">Ver no Drive</button>`;
 
-function libDet(t){const f=freq(t),cs=S.cons.filter(c=>(c.themes||[]).includes(t.id)),B=[['Resumo',t.desc],['Fisiopatologia',t.fisio],['Classificação',t.classif],['Diagnóstico',t.dx],['Diagnósticos diferenciais',t.ddx],['Exames complementares',t.exams],['Tratamento e conduta',t.tx],['Complicações',t.compl],['Particularidades para provas',t.tips],['Outros subtópicos',t.outros]].filter(x=>x[1]);return `<div class="row"><button class="b2" onclick="OT='';go()">← Biblioteca</button><h1 class="gr">${mpEscapeHtml(t.name)}</h1>${driveButton(t)}<button class="b2" onclick="edTheme('${t.id}')">Editar</button><button class="b2" onclick="del('themes','${t.id}')">Excluir</button></div><div class="card"><div class="row"><span class="gr">${mpEscapeHtml(t.area)} › ${mpEscapeHtml(t.esp||'—')}</span><select onchange="setTh('${t.id}',this.value)">${O(['Não estudado','Em estudo','Estudado','Revisado'],t.st||'Não estudado')}</select></div>${f?`<p>${pb(t)} <small>${f.p.toFixed(2).replace('.',',')}% dos itens de ${mpEscapeHtml(f.esp)} no Guia Estatístico (percentual dentro da especialidade; base: Revalida INEP 2011–2025 + ENAMED/ENARE 2025/26). Frequência histórica, não garantia de cobrança.</small></p>`:''}${t.src?`<small>Fonte: ${mpEscapeHtml(t.src)}</small>`:''}${t.mat?`<br><small>Materiais nas suas pastas: ${t.mat.split('').map(c=>({E:'Estratégia',M:'Medcof',W:'Medway'}[c])).join(', ')}</small>`:''}</div>`+(B.length?B.map(x=>`<div class="card"><small>${x[0]}</small><br>${mpEscapeHtml(x[1])}</div>`).join(''):'')+`<button class="b2" onclick="QF={theme:'${t.id}'};to('questoes','questoes','q')">Questões deste assunto (${S.qs.filter(q=>q.theme==t.id).length})</button>`}
+function libDet(t){const f=freq(t),cs=S.cons.filter(c=>(c.themes||[]).includes(t.id)),B=[['Resumo',t.desc],['Fisiopatologia',t.fisio],['Classificação',t.classif],['Diagnóstico',t.dx],['Diagnósticos diferenciais',t.ddx],['Exames complementares',t.exams],['Tratamento e conduta',t.tx],['Complicações',t.compl],['Particularidades para provas',t.tips],['Outros subtópicos',t.outros]].filter(x=>x[1]);return `<div class="row"><button class="b2" onclick="OT='';go()">← Biblioteca</button><h1 class="gr">${mpEscapeHtml(t.name)}</h1>${driveButton(t)}<button class="b2" onclick="edTheme('${t.id}')">Editar</button><button class="b2" onclick="del('themes','${t.id}')">Excluir</button></div><div class="card"><div class="row"><span class="gr">${mpEscapeHtml(t.area)} › ${mpEscapeHtml(t.esp||'—')}</span><select onchange="setTh('${t.id}',this.value)">${O(['Não estudado','Em estudo','Estudado','Revisado'],t.st||'Não estudado')}</select></div>${f?`<p>${pb(t)} <small>${f.p.toFixed(2).replace('.',',')}% dos itens de ${mpEscapeHtml(f.esp)} no Guia Estatístico (percentual dentro da especialidade; base: Revalida INEP 2011–2025 + ENAMED/ENARE 2025/26). Frequência histórica, não garantia de cobrança.</small></p>`:''}${t.src?`<small>Fonte: ${mpEscapeHtml(t.src)}</small>`:''}${t.mat?`<br><small>Materiais nas suas pastas: ${t.mat.split('').map(c=>({E:'Estratégia',M:'Medcof',W:'Medway'}[c])).join(', ')}</small>`:''}</div>`+(B.length?B.map(x=>`<div class="card"><small>${x[0]}</small><br>${mpEscapeHtml(x[1])}</div>`).join(''):'')+`<div class="card"><div class="row"><h3 class="gr">Questões deste assunto</h3><button class="b" onclick="logQuestions(null,'','${t.id}')">+ Lançar resultado</button></div>${(()=>{const z=mpThemeStats(t);return `<p>${z.n} questões · ${z.ok} acertos · ${z.err} erros · ${z.p===null?'—':z.p+'%'} de aproveitamento</p>`})()}${mpThemeLogs(t).map(x=>`<div class="row q-log-row"><span class="gr"><small>${fmt(x.date)} · ${mpEscapeHtml(x.source||'Questões externas')}</small><br>${x.total} questões · ${x.correct} acertos · ${x.total-x.correct} erros</span><button class="b2" onclick="logQuestions('${x.id}')">Editar</button></div>`).join('')}</div><button class="b2" onclick="QF={theme:'${t.id}'};to('questoes','questoes','q')">Banco de questões (${S.qs.filter(q=>q.theme==t.id).length})</button>`}
 
+// Um único registro de questões para Biblioteca, Semestres e painel Questões.
+// Associação conservadora: vínculo explícito ou nome idêntico normalizado.
+function mpTopicKey(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function mpThemeForContent(c){
+ if(!c)return null;
+ const linked=(c.themes||[]).map(th).filter(Boolean);
+ if(linked.length===1)return linked[0];
+ const exact=S.themes.filter(t=>mpTopicKey(t.name)===mpTopicKey(c.name));
+ return exact.length===1?exact[0]:null;
+}
+function mpContentForTheme(t){
+ if(!t)return null;
+ const explicit=S.cons.filter(c=>(c.themes||[]).includes(t.id));
+ if(explicit.length===1)return explicit[0];
+ if(explicit.length>1)return null;
+ const exact=S.cons.filter(c=>mpTopicKey(c.name)===mpTopicKey(t.name));
+ return exact.length===1?exact[0]:null;
+}
+function mpLogTheme(x){return th(x.theme)||mpThemeForContent(con(x.con))}
+function mpThemeLogs(t){return (S.qsessions||[]).filter(x=>mpLogTheme(x)?.id===t.id)}
+function mpThemeStats(t){
+ const logs=mpThemeLogs(t),answers=(S.ans||[]).filter(x=>mpThemeForContent(con(x.con))?.id===t.id);
+ const n=logs.reduce((v,x)=>v+(+x.total||0),0)+answers.length;
+ const ok=logs.reduce((v,x)=>v+(+x.correct||0),0)+answers.filter(x=>x.ok).length;
+ return {n,ok,err:n-ok,p:n?Math.round(ok/n*100):null};
+}
 // Registros externos: anota somente os totais, sem exigir o enunciado de cada questão.
-function logQuestions(id=null,presetCon=''){
+function logQuestions(id=null,presetCon='',presetTheme=''){
   const old=id?(S.qsessions||[]).find(x=>x.id===id):null;
-  const preset=con(presetCon||old?.con),ss=old?.sub||preset?.sub||S.subs[0]?.id||'';
+  const preset=con(presetCon||old?.con),theme=th(presetTheme||old?.theme)||mpThemeForContent(preset),linked=preset||mpContentForTheme(theme),ss=old?.sub||linked?.sub||S.subs[0]?.id||'';
   const d=document.createElement('dialog');d.className='question-log-dialog';
   const subjectOptions=()=>O(S.subs.map(x=>[x.id,x.name]),ss);
   d.innerHTML=`<h3>${old?'Editar registro':'Lançar questões feitas'}</h3><p class="mu" style="margin:6px 0 12px">Registre questões feitas fora do MedPath. Os erros, a prioridade e o intervalo de revisão são calculados automaticamente.</p>
-  <div class="q-log-fields"><label>Matéria <select id="ql_sub">${subjectOptions()}</select></label><label>Conteúdo <select id="ql_con"></select></label>
+  <div class="q-log-fields"><label>Assunto da Biblioteca <select id="ql_theme">${O([['','Sem associação à Biblioteca'],...S.themes.map(t=>[t.id,t.name])],theme?.id||'')}</select></label><label>Matéria do semestre (opcional) <select id="ql_sub">${O([['','Nenhuma'],...S.subs.map(x=>[x.id,x.name])],ss)}</select></label><label>Conteúdo do semestre (opcional) <select id="ql_con"></select></label>
   <label>Quantidade de questões <input id="ql_total" type="number" min="1" step="1" value="${old?old.total:10}"></label><label>Quantidade de acertos <input id="ql_correct" type="number" min="0" step="1" value="${old?old.correct:0}"></label>
   <label>Data da atividade <input id="ql_date" type="date" value="${mpEscapeHtml(old?.date||D())}"></label><label>Origem (opcional) <input id="ql_source" value="${mpEscapeHtml(old?.source||'')}" placeholder="Ex.: questões de apostila, simulado"></label></div>
   <div class="q-score" id="ql_preview"></div><p class="err" id="ql_error"></p>
@@ -572,37 +598,39 @@ function logQuestions(id=null,presetCon=''){
   document.body.append(d);d.showModal();
   const get=k=>d.querySelector('#ql_'+k),select=get('con');
   const refreshContents=()=>{
-    const prior=select.value||old?.con||preset?.id||'';
+    const prior=select.value||old?.con||linked?.id||'';
     const items=S.cons.filter(c=>c.sub===get('sub').value);
-    select.innerHTML=O(items.map(x=>[x.id,x.name]),prior);
+    select.innerHTML=O([['','Nenhum'],...items.map(x=>[x.id,x.name])],prior);
     if(items.some(x=>x.id===prior))select.value=prior;
     select.disabled=!items.length;
     validate();
   };
   const validate=()=>{
     const total=Number(get('total').value),correct=Number(get('correct').value),err=total-correct;
-    const valid=!!select.value&&Number.isSafeInteger(total)&&total>0&&Number.isSafeInteger(correct)&&correct>=0&&correct<=total&&calendarValidDate(get('date').value);
+    const valid=!!(select.value||get('theme').value)&&Number.isSafeInteger(total)&&total>0&&Number.isSafeInteger(correct)&&correct>=0&&correct<=total&&calendarValidDate(get('date').value);
     get('save').disabled=!valid;
     get('preview').innerHTML=valid?`<strong>${correct} acertos</strong><span>·</span><strong>${err} erros</strong><span>·</span><strong>${Math.round(correct/total*100)}% de acertos</strong>`:'<span class="mu">Escolha um conteúdo, uma data e números válidos. Acertos não podem superar o total.</span>';
     return valid;
   };
   get('sub').addEventListener('change',()=>{select.value='';refreshContents()});
+  get('theme').addEventListener('change',()=>{const t=th(get('theme').value),c=mpContentForTheme(t);if(c){get('sub').value=c.sub;refreshContents();select.value=c.id}validate()});
+  select.addEventListener('change',()=>{const t=mpThemeForContent(con(select.value));if(t)get('theme').value=t.id;validate()});
   ['total','correct','date','con'].forEach(k=>get(k).addEventListener('input',validate));
   get('cancel').onclick=()=>d.remove();
   get('save').onclick=()=>{
     if(!validate())return;
-    const c=con(select.value),date=get('date').value;
-    const entry={id:old?.id||U(),sub:get('sub').value,con:c.id,total:Number(get('total').value),correct:Number(get('correct').value),date,source:get('source').value.trim()};
+    const c=con(select.value),date=get('date').value,t=th(get('theme').value)||mpThemeForContent(c);
+    const entry={id:old?.id||U(),sub:c?.sub||'',con:c?.id||'',theme:t?.id||'',total:Number(get('total').value),correct:Number(get('correct').value),date,source:get('source').value.trim()};
     const previous=old&&old.con!==entry.con?con(old.con):null;if(old)Object.assign(old,entry);else S.qsessions.push(entry);
     // Registrar questões conta como início de estudo para conteúdo ainda não iniciado.
-    if(!studied(c)){c.status='Em andamento';c.started=date;c.studied=date}
-    if(!calendarValidDate(c.started))c.started=date;
+    if(c&&!studied(c)){c.status='Em andamento';c.started=date;c.studied=date}
+    if(c&&!calendarValidDate(c.started))c.started=date;
     // O desempenho gera reforço extra sem substituir as revisões fixas.
     // Mantém a próxima revisão vinculada à data do último exercício, sem retroceder o relógio.
 
-    mpSyncNext(c);
-    if(previous&&studied(previous))mpSyncNext(previous)
-    S.hist.push({d:D(),con:c.id,ev:`Questões registradas: ${entry.correct}/${entry.total} (${Math.round(entry.correct/entry.total*100)}%)`});
+    if(c)mpSyncNext(c);
+    if(previous&&studied(previous))mpSyncNext(previous);
+    S.hist.push({d:D(),con:c?.id||'',ev:`Questões registradas: ${entry.correct}/${entry.total} (${Math.round(entry.correct/entry.total*100)}%)`});
     d.remove();save();go();
   };
   refreshContents();
@@ -623,7 +651,7 @@ function externalRecords(){
   <div class="grid"><div class="card"><small>Questões registradas</small><div class="big">${sum.n}</div></div><div class="card"><small>Acertos</small><div class="big">${sum.ok}</div></div><div class="card"><small>Erros</small><div class="big">${sum.n-sum.ok}</div></div><div class="card"><small>Aproveitamento</small><div class="big">${sum.n?Math.round(sum.ok/sum.n*100)+'%':'—'}</div></div></div>
   <div class="card"><h3>Prioridade de revisão por conteúdo</h3><small>A classificação usa as questões feitas fora e dentro do site. Quanto menor o aproveitamento, menor o intervalo recomendado.</small>
   ${stats.length?stats.map(({c,z})=>`<div class="row q-log-row"><div class="gr"><b>${mpEscapeHtml(c.name)}</b> <small>· ${mpEscapeHtml(sub(c.sub)?.name)}</small><br>${scoreText(c)}</div><button class="b2" onclick="logQuestions(null,'${c.id}')">+ Resultado</button></div>`).join(''):'<div class="q-empty">Os assuntos aparecerão aqui após o primeiro registro.</div>'}</div>
-  <div class="card"><h3>Registros anteriores</h3>${logs.length?logs.map(x=>{const c=con(x.con);return `<div class="row q-log-row"><span class="gr"><b>${mpEscapeHtml(c?.name||'Conteúdo removido')}</b><br><small>${mpEscapeHtml(sub(x.sub)?.name||'')} · ${fmt(x.date)} ${x.source?' · '+mpEscapeHtml(x.source):''}</small><br><small>${x.total} questões · ${x.correct} acertos · ${x.total-x.correct} erros · ${Math.round(x.correct/x.total*100)}%</small></span><div class="q-log-actions"><button class="b2" onclick="logQuestions('${x.id}')">Editar</button><button class="b2" onclick="deleteLog('${x.id}')">Excluir</button></div></div>`}).join(''):'<div class="q-empty">Nenhum registro externo ainda. Lance o resultado de um bloco de questões, simulado ou lista de exercícios.</div>'}</div>`;
+  <div class="card"><h3>Registros anteriores</h3>${logs.length?logs.map(x=>{const c=con(x.con);return `<div class="row q-log-row"><span class="gr"><b>${mpEscapeHtml(mpLogTheme(x)?.name||c?.name||'Conteúdo removido')}</b><br><small>${mpEscapeHtml(sub(x.sub)?.name||'')} · ${fmt(x.date)} ${x.source?' · '+mpEscapeHtml(x.source):''}</small><br><small>${x.total} questões · ${x.correct} acertos · ${x.total-x.correct} erros · ${Math.round(x.correct/x.total*100)}%</small></span><div class="q-log-actions"><button class="b2" onclick="logQuestions('${x.id}')">Editar</button><button class="b2" onclick="deleteLog('${x.id}')">Excluir</button></div></div>`}).join(''):'<div class="q-empty">Nenhum registro externo ainda. Lance o resultado de um bloco de questões, simulado ou lista de exercícios.</div>'}</div>`;
 }
 
 V.bancoQuestoes=V.questoes;
