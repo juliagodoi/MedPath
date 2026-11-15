@@ -1,7 +1,15 @@
-// Organização visual dos blocos por data e visão de questões já realizadas
+// Organização visual dos blocos por matéria e visão de questões já realizadas
 // em cada disciplina. Não modifica o histórico nem os registros existentes.
 (function () {
   const esc = mpEscapeHtml;
+  const expandedSubjects = new Set();
+
+  window.mpRememberQuestionSubject = function (details) {
+    const key = details?.dataset?.subject;
+    if (!key) return;
+    if (details.open) expandedSubjects.add(key);
+    else expandedSubjects.delete(key);
+  };
 
   function subjectForSession(log) {
     const linked = con(log.con) || mpContentForTheme(th(log.theme));
@@ -53,31 +61,38 @@
     if (index < 0) return page;
     const logs = [...(S.qsessions || [])].sort((a, b) =>
       String(b.date || '').localeCompare(String(a.date || '')) || String(a.id || '').localeCompare(String(b.id || '')));
-    const byDay = new Map();
+    const bySubject = new Map();
     logs.forEach(log => {
-      const date = calendarValidDate(log.date) ? log.date : '';
-      if (!byDay.has(date)) byDay.set(date, []);
-      byDay.get(date).push(log);
+      const content = con(log.con), theme = mpLogTheme(log);
+      const linked = content || mpContentForTheme(theme);
+      const subject = sub(linked?.sub || log.sub)?.name || theme?.esp || theme?.area || 'Outros assuntos';
+      const subjectKey = mpTopicKey(subject) || 'outros';
+      if (!bySubject.has(subjectKey)) bySubject.set(subjectKey, {name: subject, content: new Map(), logs: []});
+      const group = bySubject.get(subjectKey);
+      group.logs.push(log);
+      const title = theme?.name || content?.name || 'Conteúdo não identificado';
+      const topicKey = mpTopicKey(title) || title;
+      if (!group.content.has(topicKey)) group.content.set(topicKey, {name: title, logs: []});
+      group.content.get(topicKey).logs.push(log);
     });
-    const groups = [...byDay.entries()].map(([date, items]) => {
-      const total = items.reduce((sum, log) => sum + Math.max(0, Number(log.total) || 0), 0);
-      const correct = items.reduce((sum, log) => sum + Math.max(0, Number(log.correct) || 0), 0);
-      return `<section class="mp-question-day">
-        <div class="mp-question-day-heading"><strong>${date ? 'Feitas em ' + fmt(date) : 'Data não informada'}</strong>
-          <small>${items.length} ${items.length === 1 ? 'bloco' : 'blocos'} · ${total} questões · ${correct} acertos · ${total - correct} erros</small></div>
-        ${items.map(log => {
-          const content = con(log.con);
-          const title = mpLogTheme(log)?.name || content?.name || 'Conteúdo removido';
-          const total = Math.max(0, Number(log.total) || 0), correct = Math.max(0, Number(log.correct) || 0);
-          return `<div class="row q-log-row mp-question-record"><span class="gr">
-            <b>${esc(title)}</b> <small>· ${esc(sub(log.sub || content?.sub)?.name || '')}</small><br>
-            <small>${esc(log.source || 'Questões externas')} · ${date ? fmt(date) : 'sem data'}</small><br>
-            <small>${total} questões · ${correct} acertos · ${total - correct} erros · ${total ? Math.round(100 * correct / total) + '%' : '—'}</small>
-            </span><div class="q-log-actions"><button class="b2" onclick="logQuestions('${log.id}')">Editar</button>
-            <button class="b2" onclick="deleteLog('${log.id}')">Excluir</button></div></div>`;
-        }).join('')}</section>`;
+    const groups = [...bySubject.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, 'pt-BR')).map(([key, group]) => {
+      const topics = [...group.content.values()].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+      return `<details class="mp-question-subject" data-subject="${esc(key)}" ontoggle="mpRememberQuestionSubject(this)" ${expandedSubjects.has(key) ? 'open' : ''}>
+        <summary><strong>${esc(group.name)}</strong></summary>
+        <div class="mp-question-subject-content">${topics.map(topic => `<section class="mp-question-topic">
+          <h4>${esc(topic.name)}</h4>
+          ${topic.logs.map(log => {
+            const n = Math.max(0, Number(log.total) || 0);
+            const ok = Math.min(n, Math.max(0, Number(log.correct) || 0));
+            return `<div class="row mp-question-entry"><div class="gr">
+              <span class="mp-question-date">${calendarValidDate(log.date) ? fmt(log.date) : 'Data não informada'}</span>
+              <small> · ${n} questões · ${ok} acertos · ${n - ok} erros</small>
+              ${log.source ? `<small class="mp-question-source"> · ${esc(log.source)}</small>` : ''}
+              </div><div class="q-log-actions"><button class="b2" onclick="logQuestions('${log.id}')">Editar</button>
+              <button class="b2" onclick="deleteLog('${log.id}')">Excluir</button></div></div>`;
+          }).join('')}</section>`).join('')}</div></details>`;
     });
-    return page.slice(0, index) + `<div class="card"><h3>Blocos de questões por data</h3>
-      ${groups.length ? groups.join('') : '<div class="q-empty">Nenhum bloco registrado ainda.</div>'}</div>`;
+    return page.slice(0, index) + `<div class="card"><h3>Questões por matéria</h3>
+      ${groups.length ? groups.join('') : '<div class="q-empty">As matérias aparecerão aqui quando você lançar um bloco de questões.</div>'}</div>`;
   };
 })();
