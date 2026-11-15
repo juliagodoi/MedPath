@@ -372,7 +372,7 @@ V.estatisticas=()=>{const A=S.ans.length+(S.qsessions||[]).reduce((n,x)=>n+(Numb
 V.config=()=>`<h1>Configurações</h1><div class="card row"><span class="gr">Tema</span>${[['','Automático'],['light','Claro'],['dark','Escuro']].map(([v,l])=>`<button class="b2" onclick="S.cfg.theme='${v}';save();ap();go()">${l}</button>`).join('')}<button class="b2" onclick="edCfg()">Semestre e metas</button></div><div class="card"><h3>Backup (exportar / importar)</h3><p><small>Os dados ficam só neste navegador. Copie o texto abaixo para guardar um backup, ou cole um backup e importe.</small></p><textarea id="bk" style="min-height:140px">${mpEscapeHtml(JSON.stringify(S))}</textarea><div class="row"><button class="b2" onclick="$('#bk').select();document.execCommand('copy')">Copiar</button><input type="file" accept=".json,text/plain" onchange="const r=new FileReader();r.onload=()=>$('#bk').value=r.result;r.readAsText(this.files[0])"><button class="b" onclick="try{const o=JSON.parse($('#bk').value);if(!o.subs||!o.cons)throw 0;S={...blank(),...o};save();ap();go()}catch(x){C('Backup inválido.',()=>{})}">Importar</button><button class="b2" onclick="C('Apagar todos os dados?',()=>{S=blank();save();go()})">Apagar tudo</button></div></div>`;
 const NAV=[['inicio','Início'],['semestres','Semestres'],['residencia','Residência'],['questoes','Questões'],['cronograma','Cronograma'],['desempenho','Desempenho']];
 const TB={};let RS='',BK=null,GS='';
-const sec=(k,l,f)=>{const a=TB[k]||l[0][0];return `<div class="row" style="margin-bottom:12px">${l.map(([v,t])=>`<button class="${v==a?'b':'b2'}" onclick="TB['${k}']='${v}';go()">${t}</button>`).join('')}</div>`+f[a]()};
+const sec=(k,l,f)=>{const a=f[TB[k]]?TB[k]:l[0][0];return `<div class="row" style="margin-bottom:12px">${l.map(([v,t])=>`<button class="${v==a?'b':'b2'}" onclick="TB['${k}']='${v}';go()">${t}</button>`).join('')}</div>`+f[a]()};
 const bk=()=>BK?`<button class="b2" style="margin-bottom:10px" onclick="const f=BK.fn;BK=null;f()">← Voltar: ${mpEscapeHtml(BK.lab)}</button>`:'';
 const nm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''),nw=s=>nm(s).split(/\W+/);
 function to(h,k,v){if(k)TB[k]=v;location.hash=='#'+h?go():location.hash=h}
@@ -659,10 +659,9 @@ V.residencia=()=>V.lib();
 V.questoes=()=>sec('questoes',[
   ['registro','Questões feitas'],
   ['r','Revisões'],
-  ['q','Banco ('+S.qs.length+')'],
-  ['x','Caderno de erros'],
-  ['h','Histórico ('+S.ans.length+')']
-],{registro:externalRecords,r:V.revisoes,q:V.bancoQuestoes,x:V.erros,h:V.histq});
+  ['q','Banco'],
+  ['x','Caderno de erros']
+],{registro:externalRecords,r:V.revisoes,q:V.bancoQuestoes,x:V.erros});
 V.cronograma=()=>CR();
 V.desempenho=V.estatisticas;
 function ap(){if(S.cfg.theme)document.documentElement.dataset.theme=S.cfg.theme;else document.documentElement.removeAttribute('data-theme')}
@@ -1245,10 +1244,10 @@ externalRecords=function(){
  const h=mpBaseExternalRecords(),a=h.indexOf('<div class="card"><h3>Prioridade de revisão por conteúdo'),b=h.indexOf('<div class="card"><h3>Registros anteriores',a);
  return a>=0&&b>a?h.slice(0,a)+h.slice(b):h;
 };
-// Revisões ficam apenas em Cronograma. Questões continua com registros, banco, erros e histórico.
+// Revisões ficam no Cronograma. Questões mostra registros, banco e caderno de erros.
 V.questoes=()=>sec('questoes',[
- ['registro','Questões feitas'],['q','Banco ('+S.qs.length+')'],['x','Caderno de erros'],['h','Histórico ('+S.ans.length+')']
-],{registro:externalRecords,q:V.bancoQuestoes,x:V.erros,h:V.histq});
+ ['registro','Questões feitas'],['q','Banco'],['x','Caderno de erros']
+],{registro:externalRecords,q:V.bancoQuestoes,x:V.erros});
 V.cronograma=()=>sec('crono', [['agenda','Calendário'],['rev','Revisões']],{agenda:CR,rev:V.revisoes});
 
 // Login, cadastro e sincronização externa removidos; o estudo é salvo localmente.

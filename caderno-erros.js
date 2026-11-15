@@ -1,5 +1,5 @@
-// Caderno de erros — os totais vêm das questões registradas; os subtópicos
-// detalham o motivo do erro, sem acrescentar uma segunda contagem de questões.
+// Cada subtópico detalhado corresponde a uma questão errada. Se a questão já
+// entrou por um resultado lançado, não a contabilizamos uma segunda vez.
 (function () {
   const REASONS = ['Falta de atenção', 'Não sabia'];
   const esc = mpEscapeHtml;
@@ -63,6 +63,15 @@
       else group.errors += 1;
     });
     focusItems().forEach(item => ensure(item.group));
+    // Os resultados lançados já contêm o número de erros; as anotações detalham
+    // essas questões. Se houver mais anotações do que erros lançados, o excedente
+    // representa questões erradas ainda não registradas em Questões feitas.
+    for (const group of map.values()) {
+      const detailed = focusItems().filter(item => item.group === group.key).length;
+      const unlogged = Math.max(0, detailed - group.errors);
+      group.total += unlogged;
+      group.errors += unlogged;
+    }
     return [...map.values()]
       .filter(g => g.errors > 0 || focusItems().some(x => x.group === g.key))
       .sort((a, b) => b.errors - a.errors || a.title.localeCompare(b.title, 'pt-BR'));
@@ -81,7 +90,7 @@
     const items = focusItems().filter(item => keys.includes(item.group) && !item.resolved);
     if (!items.length) return '';
     return `<div class="mp-review-focus"><b>Foco especial nesta revisão:</b>
-      ${items.map(item => `<span class="mp-focus-tag ${item.reason === 'Não sabia' ? 'mp-focus-knowledge' : 'mp-focus-attention'}">${esc(item.topic)} <small>· ${esc(item.reason)}${item.count > 1 ? ' · ' + item.count + ' erros' : ''}</small>${item.note ? `<small class="mp-focus-detail">${esc(item.note)}</small>` : ''}</span>`).join('')}
+      ${items.map(item => `<span class="mp-focus-tag ${item.reason === 'Não sabia' ? 'mp-focus-knowledge' : 'mp-focus-attention'}">${esc(item.topic)} <small>· ${esc(item.reason)}</small>${item.note ? `<small class="mp-focus-detail">${esc(item.note)}</small>` : ''}</span>`).join('')}
       <small class="mp-focus-note">Revise o assunto completo e dedique atenção extra a esses pontos.</small>
     </div>`;
   }
@@ -100,8 +109,6 @@
         <input data-field="topic" maxlength="180" placeholder="Ex.: tratamento da meningite bacteriana" value="${esc(item.topic || '')}"></label>
       <label>Por que errou?
         <select data-field="reason">${O(REASONS, item.reason || 'Não sabia')}</select></label>
-      <label>Quantas questões tiveram esse erro?
-        <input type="number" data-field="count" min="1" max="9999" step="1" value="${Number(item.count) > 0 ? Number(item.count) : 1}"></label>
       <label class="mp-error-note">Observação (opcional)
         <textarea data-field="note" rows="2" maxlength="350" placeholder="O que vale lembrar na próxima revisão">${esc(item.note || '')}</textarea></label>
       <label class="mp-error-resolved"><input data-field="resolved" type="checkbox" ${item.resolved ? 'checked' : ''}> Já superei esta dificuldade</label>
@@ -125,8 +132,8 @@
     d.className = 'mp-error-dialog';
     d.dataset.group = key;
     d.innerHTML = `<h3>Editar erros — ${esc(info.title)}</h3>
-      <p class="mu">${count?.errors || 0} erros contabilizados nos resultados lançados. Indique em quais pontos você errou e por quê.</p>
-      <p class="mu"><small>Essas anotações não aumentam a quantidade de erros: são focos para as próximas revisões.</small></p>
+      <p class="mu">${count?.errors || 0} erros registrados neste assunto · ${current.length} ${current.length === 1 ? 'questão detalhada' : 'questões detalhadas'}.</p>
+      <p class="mu"><small>Cada subtópico adicionado representa uma questão errada. Se ela já foi contabilizada nos resultados lançados, não será contada novamente.</small></p>
       <div id="mp-error-rows">${current.map(editableRow).join('')}</div>
       <button type="button" class="b2" id="mp-error-add">+ Adicionar subtópico</button>
       <p id="mp-error-validation" class="err" role="alert"></p>
@@ -148,13 +155,12 @@
       const value = field => row.querySelector(`[data-field="${field}"]`);
       const topic = value('topic').value.trim();
       const reason = value('reason').value;
-      const count = Number(value('count').value);
       const note = value('note').value.trim();
-      if (!topic || !REASONS.includes(reason) || !Number.isSafeInteger(count) || count < 1 || count > 9999) {
-        d.querySelector('#mp-error-validation').textContent = 'Preencha o subtópico, o motivo e a quantidade (número inteiro a partir de 1).';
+      if (!topic || !REASONS.includes(reason)) {
+        d.querySelector('#mp-error-validation').textContent = 'Preencha o subtópico e selecione o motivo do erro.';
         return;
       }
-      items.push({id: row.dataset.id || U(), group: d.dataset.group, topic, reason, count,
+      items.push({id: row.dataset.id || U(), group: d.dataset.group, topic, reason, count: 1,
         note, resolved: value('resolved').checked, updatedAt: D()});
     }
     S.errorFocus = [...focusItems().filter(x => x.group !== d.dataset.group), ...items];
@@ -169,17 +175,18 @@
     const active = focusItems().filter(x => !x.resolved && groupInfo(x.group)).length;
     return `<h1>Caderno de erros</h1>
       <div class="grid mp-error-stats">
-        <div class="card"><small>Erros das questões lançadas</small><div class="big">${loggedErrors}</div></div>
+        <div class="card"><small>Erros registrados</small><div class="big">${loggedErrors}</div></div>
         <div class="card"><small>Subtópicos para reforçar</small><div class="big">${active}</div></div>
       </div>
       <div class="card"><h3>Erros por assunto</h3>
-        <p class="mu">Os erros dos resultados lançados em <b>Questões feitas</b> entram nesta contagem. Use <b>Editar erros</b> para identificar subtópicos e separar falta de atenção de falta de conhecimento.</p>
         ${all.length ? all.map(g => {
           const items = focusItems().filter(x => x.group === g.key && !x.resolved);
+          const detailed = focusItems().filter(x => x.group === g.key).length;
           return `<div class="row mp-error-group"><span class="gr"><b>${esc(g.title)}</b> <small>· ${esc(g.subject)}</small><br>
-            <small>${g.errors} ${g.errors === 1 ? 'erro' : 'erros'} de ${g.total} questões · ${g.total ? Math.round(100 * g.correct / g.total) + '%' : '—'} de acertos</small>
-            ${items.length ? `<div class="mp-error-summary">${items.map(x => `<span class="mp-focus-tag ${x.reason === 'Não sabia' ? 'mp-focus-knowledge' : 'mp-focus-attention'}">${esc(x.topic)} · ${esc(x.reason)}${x.count > 1 ? ' · ' + x.count + ' erros' : ''}</span>`).join('')}</div>` :
-              '<small class="mp-error-unclassified">Subtópicos ainda não identificados</small>'}
+            <small>${g.errors} ${g.errors === 1 ? 'erro' : 'erros'} de ${g.total} ${g.total === 1 ? 'questão' : 'questões'} · ${g.total ? Math.round(100 * g.correct / g.total) + '%' : '—'} de acertos</small>
+            <small class="mp-error-detailed">${detailed} de ${g.errors} ${g.errors === 1 ? 'questão detalhada' : 'questões detalhadas'}</small>
+            ${items.length ? `<div class="mp-error-summary">${items.map(x => `<span class="mp-focus-tag ${x.reason === 'Não sabia' ? 'mp-focus-knowledge' : 'mp-focus-attention'}">${esc(x.topic)} · ${esc(x.reason)}</span>`).join('')}</div>` :
+              detailed ? '<small class="mp-error-unclassified">Dificuldades sinalizadas como superadas</small>' : '<small class="mp-error-unclassified">Subtópicos ainda não identificados</small>'}
           </span><button type="button" class="b2" onclick="mpErrorOpen('${esc(g.key)}')">Editar erros</button></div>`;
         }).join('') : '<p class="review-empty">Nenhum erro lançado ainda. Os erros aparecerão quando você registrar um resultado em Questões feitas ou errar uma questão do banco.</p>'}
       </div>

@@ -152,6 +152,7 @@ dialog{background:var(--c);color:var(--t);border:1px solid var(--b);border-radiu
 .mp-error-group .gr{min-width:170px;overflow-wrap:anywhere}
 .mp-error-summary{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .mp-error-unclassified{display:block;margin-top:7px}
+.mp-error-detailed{display:block;margin-top:6px;color:var(--m)}
 .mp-focus-tag{display:inline-block;padding:3px 9px;margin:3px 3px 3px 0;border-radius:8px;
   border:1px solid var(--b);background:var(--bg);font-size:12px;color:var(--t);overflow-wrap:anywhere}
 .mp-focus-tag small{font-size:11px}
@@ -166,13 +167,13 @@ dialog{background:var(--c);color:var(--t);border:1px solid var(--b);border-radiu
 .mp-error-individual:last-child{border-bottom:0}
 .mp-error-individual select{margin:8px 8px 0 0}
 .mp-error-dialog{width:min(830px,96vw);max-width:96vw;max-height:90dvh;overflow:auto}
-.mp-error-editor-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) 170px;gap:9px;
+.mp-error-editor-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:9px;
   align-items:end;padding:12px 0;border-bottom:1px solid var(--b)}
 .mp-error-editor-row label{display:block;font-size:12px;color:var(--m)}
 .mp-error-editor-row input:not([type=checkbox]),.mp-error-editor-row select,
 .mp-error-editor-row textarea{display:block;width:100%;margin-top:5px;color:var(--t)}
 .mp-error-editor-row textarea{min-height:54px;resize:vertical}
-.mp-error-editor-row .mp-error-note{grid-column:1 / 3}
+.mp-error-editor-row .mp-error-note{grid-column:1 / -1}
 .mp-error-editor-row .mp-error-resolved{display:flex;gap:7px;align-items:center;align-self:center}
 .mp-error-editor-row .mp-error-remove{justify-self:end}
 .mp-error-dialog #mp-error-add{margin:13px 0}
