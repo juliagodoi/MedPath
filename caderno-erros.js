@@ -89,10 +89,10 @@
     const keys = linkedFocusKeys(content);
     const items = focusItems().filter(item => keys.includes(item.group) && !item.resolved);
     if (!items.length) return '';
-    return `<div class="mp-review-focus"><b>Foco especial nesta revisão:</b>
-      ${items.map(item => `<span class="mp-focus-tag ${item.reason === 'Não sabia' ? 'mp-focus-knowledge' : 'mp-focus-attention'}">${esc(item.topic)} <small>· ${esc(item.reason)}</small>${item.note ? `<small class="mp-focus-detail">${esc(item.note)}</small>` : ''}</span>`).join('')}
+    return `<details class="mp-review-focus"><summary>Focos desta revisão (${items.length})</summary><div class="mp-review-focus-content">
+      ${items.map(item => `<span class="mp-focus-tag ${item.reason === 'Não sabia' ? 'mp-focus-knowledge' : 'mp-focus-attention'}">${esc(item.topic)} <small>· ${esc(item.reason)}${calendarValidDate(item.date) ? ' · ' + fmt(item.date) : ''}</small>${item.note ? `<small class="mp-focus-detail">${esc(item.note)}</small>` : ''}</span>`).join('')}
       <small class="mp-focus-note">Revise o assunto completo e dedique atenção extra a esses pontos.</small>
-    </div>`;
+    </div></details>`;
   }
 
   const previousReviewRow = mcRevisionRow;
@@ -104,11 +104,14 @@
   };
 
   function editableRow(item = {}) {
+    const date = calendarValidDate(item.date) ? item.date : item.id ? '' : D();
     return `<div class="mp-error-editor-row" data-error-row data-id="${esc(item.id || '')}">
       <label class="mp-error-topic">Conteúdo ou subtópico que errou
         <input data-field="topic" maxlength="180" placeholder="Ex.: tratamento da meningite bacteriana" value="${esc(item.topic || '')}"></label>
       <label>Por que errou?
         <select data-field="reason">${O(REASONS, item.reason || 'Não sabia')}</select></label>
+      <label class="mp-error-date">Data em que fez a questão
+        <input data-field="date" type="date" value="${esc(date)}"></label>
       <label class="mp-error-note">Observação (opcional)
         <textarea data-field="note" rows="2" maxlength="350" placeholder="O que vale lembrar na próxima revisão">${esc(item.note || '')}</textarea></label>
       <label class="mp-error-resolved"><input data-field="resolved" type="checkbox" ${item.resolved ? 'checked' : ''}> Já superei esta dificuldade</label>
@@ -155,13 +158,14 @@
       const value = field => row.querySelector(`[data-field="${field}"]`);
       const topic = value('topic').value.trim();
       const reason = value('reason').value;
+      const date = value('date').value;
       const note = value('note').value.trim();
-      if (!topic || !REASONS.includes(reason)) {
-        d.querySelector('#mp-error-validation').textContent = 'Preencha o subtópico e selecione o motivo do erro.';
+      if (!topic || !REASONS.includes(reason) || date && !calendarValidDate(date)) {
+        d.querySelector('#mp-error-validation').textContent = 'Preencha o subtópico, o motivo e uma data válida (se informada).';
         return;
       }
       items.push({id: row.dataset.id || U(), group: d.dataset.group, topic, reason, count: 1,
-        note, resolved: value('resolved').checked, updatedAt: D()});
+        date, note, resolved: value('resolved').checked, updatedAt: D()});
     }
     S.errorFocus = [...focusItems().filter(x => x.group !== d.dataset.group), ...items];
     d.close();
@@ -182,10 +186,14 @@
         ${all.length ? all.map(g => {
           const items = focusItems().filter(x => x.group === g.key && !x.resolved);
           const detailed = focusItems().filter(x => x.group === g.key).length;
+          const logs = (S.qsessions || []).filter(x => groupForLog(x) === g.key)
+            .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
           return `<div class="row mp-error-group"><span class="gr"><b>${esc(g.title)}</b> <small>· ${esc(g.subject)}</small><br>
             <small>${g.errors} ${g.errors === 1 ? 'erro' : 'erros'} de ${g.total} ${g.total === 1 ? 'questão' : 'questões'} · ${g.total ? Math.round(100 * g.correct / g.total) + '%' : '—'} de acertos</small>
             <small class="mp-error-detailed">${detailed} de ${g.errors} ${g.errors === 1 ? 'questão detalhada' : 'questões detalhadas'}</small>
-            ${items.length ? `<div class="mp-error-summary">${items.map(x => `<span class="mp-focus-tag ${x.reason === 'Não sabia' ? 'mp-focus-knowledge' : 'mp-focus-attention'}">${esc(x.topic)} · ${esc(x.reason)}</span>`).join('')}</div>` :
+            ${logs.length ? `<details class="mp-error-dates"><summary>Blocos realizados: ${logs.length} · mais recente ${calendarValidDate(logs[0].date) ? fmt(logs[0].date) : 'sem data'}</summary>
+              ${logs.map(x => `<div class="mp-error-date-line"><time datetime="${esc(x.date || '')}">${calendarValidDate(x.date) ? fmt(x.date) : 'Data não informada'}</time> · ${Math.max(0, Number(x.total) - Number(x.correct))} erros em ${Number(x.total) || 0} questões${x.source ? ' · ' + esc(x.source) : ''}</div>`).join('')}</details>` : ''}
+            ${items.length ? `<div class="mp-error-summary">${items.map(x => `<span class="mp-focus-tag ${x.reason === 'Não sabia' ? 'mp-focus-knowledge' : 'mp-focus-attention'}">${esc(x.topic)} · ${esc(x.reason)} <small>· ${calendarValidDate(x.date) ? fmt(x.date) : 'Data não informada'}</small></span>`).join('')}</div>` :
               detailed ? '<small class="mp-error-unclassified">Dificuldades sinalizadas como superadas</small>' : '<small class="mp-error-unclassified">Subtópicos ainda não identificados</small>'}
           </span><button type="button" class="b2" onclick="mpErrorOpen('${esc(g.key)}')">Editar erros</button></div>`;
         }).join('') : '<p class="review-empty">Nenhum erro lançado ainda. Os erros aparecerão quando você registrar um resultado em Questões feitas ou errar uma questão do banco.</p>'}

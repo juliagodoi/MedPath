@@ -13,6 +13,10 @@ Esta versão foi preparada a partir do arquivo `MedPath-main(2).zip` enviado na 
 - **Editar erros por assunto:** no Caderno, o botão **+ Questões** foi substituído por **Editar erros**. É possível adicionar, alterar e excluir os subtópicos em que errou, classificá-los como **Falta de atenção** ou **Não sabia**, registrar uma observação e sinalizar quando a dificuldade foi superada. Cada subtópico adicionado equivale a uma questão errada, sem campo de quantidade.
 - **Revisões com foco individualizado:** o calendário e a área **Revisões** destacam os subtópicos ainda pendentes, com causa e observação, enquanto mantêm a revisão do assunto inteiro. Um subtópico marcado como superado deixa de ser sinalizado nas próximas revisões.
 - **Menu de Questões simplificado:** as guias são **Questões feitas**, **Banco** e **Caderno de erros**. A guia **Histórico** foi retirada do menu, e **Banco** não mostra mais um contador entre parênteses. O texto explicativo abaixo de **Erros por assunto** também foi removido.
+- **Blocos de questões por data:** os registros anteriores ficam organizados por dia, com totais de questões, acertos e erros. Cada lançamento conserva sua data editável.
+- **Datas no Caderno de Erros:** ao detalhar um erro, indique a data em que fez a questão. Os registros antigos sem data continuam preservados e podem receber uma data ao serem editados. Os assuntos exibem os blocos e as respectivas datas em uma área expansível.
+- **Disciplinas mais limpas:** na visualização de cada disciplina dos Semestres, foram retirados os quadros de Materiais, Anotações e Histórico de aprendizagem. O quadro de Questões relacionadas passa a somar os resultados lançados em Questões feitas e as respostas registradas no banco, inclusive quando o lançamento foi associado ao assunto da Biblioteca.
+- **Revisões mais compactas:** os focos e observações aparecem dentro de um painel recolhido por padrão; clique na seta para expandir cada revisão.
 
 Os erros que já constam em **Questões feitas** não são duplicados quando recebem subtópicos. Se forem cadastrados mais subtópicos do que erros já lançados em um assunto, o excedente passa a contar como questão errada ainda não registrada. O Caderno mostra quantas questões já tiveram seu erro detalhado.
 
@@ -22,6 +26,6 @@ Exemplo: um conteúdo estudado no dia 1 teria revisões nos dias 2, 8 e 31. Se a
 
 1. Faça um backup dos arquivos atuais do GitHub.
 2. Substitua os arquivos públicos pelos deste ZIP, mantendo a estrutura `MedPath-main/` usada no seu repositório.
-3. Aguarde o GitHub Pages atualizar e recarregue o MedPath no navegador. O cache do aplicativo foi versionado para incluir `calendario-revisoes.js` e `caderno-erros.js`.
+3. Aguarde o GitHub Pages atualizar e recarregue o MedPath no navegador. O cache do aplicativo foi versionado para incluir `calendario-revisoes.js`, `caderno-erros.js` e `organizacao-medpath.js`.
 
 Os dados pessoais existentes continuam salvos no mesmo documento do Firestore. O novo código não apaga histórico nem substitui o banco de questões. Nenhuma escrita remota foi executada durante o preparo deste arquivo.
