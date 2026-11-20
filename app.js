@@ -46,11 +46,11 @@ function mpReviewSlots(c){
 function mpExtraSlots(c){
   if(!c||!studied(c))return [];
   const done=c.reviewExtraDone&&typeof c.reviewExtraDone==='object'?c.reviewExtraDone:{};
-  const sessions=(S.qsessions||[]).filter(x=>x.con===c.id&&calendarValidDate(x.date)&&Number(x.total)>0&&Number(x.correct)<Number(x.total));
+  const sessions=(S.qsessions||[]).filter(x=>x.con===c.id&&calendarValidDate(x.date)&&Number(x.total)>0&&Number(x.correct)/Number(x.total)<0.75);
   const internal=(S.ans||[]).filter(x=>x.con===c.id&&!x.ok&&calendarValidDate(x.d));
   const extra=sessions.map(x=>{
     const pct=100*Number(x.correct)/Number(x.total);
-    const days=pct<50?1:pct<70?3:pct<85?7:14;
+    const days=pct<50?1:pct<70?3:7;
     return {extra:true,key:'ext-'+x.id,day:days,due:add(x.date,days),done:!!done['ext-'+x.id],source:'Questões externas'};
   });
   internal.forEach(x=>extra.push({extra:true,key:'int-'+x.id,day:1,due:add(x.d,1),done:!!done['int-'+x.id],source:'Questão incorreta'}));
