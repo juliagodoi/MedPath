@@ -80,7 +80,7 @@
     const complete = item.done
       ? `<span class="mp-rev-done">✓ Feita${item.completedAt ? ' em ' + fmt(item.completedAt) : ''}</span>`
       : item.due <= D()
-        ? `<button class="b" onclick="completeReview('${c.id}',${item.extraReview ? JSON.stringify('extra:' + item.extraKey) : item.reviewDay})">✓ Marcar como feita</button>`
+        ? `<button class="b" onclick="completeReview('${c.id}',${item.extraReview ? mpEscapeHtml(JSON.stringify('extra:' + item.extraKey)) : item.reviewDay})">✓ Marcar como feita</button>`
         : '<small>Disponível na data prevista</small>';
     return `<div class="row tk mc-auto-review"><span class="gr"><span class="mc-review-label">${type} · ${status}</span><br><b>${mpEscapeHtml(c.name)}</b><br><small>${mpEscapeHtml(sub(c.sub)?.name || 'Sem disciplina')} · ${fmt(item.due)}</small><br>${changed}</span><div class="mc-review-actions">${item.done ? '' : `<button class="b2" onclick="logQuestions(null,'${c.id}')">+ Questões</button>`}${complete}</div></div>`;
   };

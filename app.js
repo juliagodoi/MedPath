@@ -321,7 +321,7 @@ function mcVisibleTask(t){
 function mcRevisionRow(item){
   const c=con(item.con);if(!c)return '';
   const status=item.done?'Concluída':item.due<D()?'Atrasada':'Programada';
-  return `<div class="row tk mc-auto-review"><span class="gr"><span class="mc-review-label">${item.extraReview?'Reforço extra':item.reviewIndex+'ª revisão'} · ${status}</span><br><b>${mpEscapeHtml(c.name)}</b><br><small>${mpEscapeHtml(sub(c.sub)?.name||'')} · ${fmt(item.due)} · D+${item.reviewDay}</small></span><div class="mc-review-actions">${item.done?'<small>Concluída ✓</small>':`<button class="b2" onclick="logQuestions(null,'${c.id}')">+ Questões</button><button class="b" onclick="completeReview('${c.id}',${item.extraReview?JSON.stringify('extra:'+item.extraKey):item.reviewDay})">Concluir revisão</button>`}</div></div>`;
+  return `<div class="row tk mc-auto-review"><span class="gr"><span class="mc-review-label">${item.extraReview?'Reforço extra':item.reviewIndex+'ª revisão'} · ${status}</span><br><b>${mpEscapeHtml(c.name)}</b><br><small>${mpEscapeHtml(sub(c.sub)?.name||'')} · ${fmt(item.due)} · D+${item.reviewDay}</small></span><div class="mc-review-actions">${item.done?'<small>Concluída ✓</small>':`<button class="b2" onclick="logQuestions(null,'${c.id}')">+ Questões</button><button class="b" onclick="completeReview('${c.id}',${item.extraReview?mpEscapeHtml(JSON.stringify('extra:'+item.extraKey)):item.reviewDay})">Concluir revisão</button>`}</div></div>`;
 }
 
 function mcCalendar(){
